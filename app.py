@@ -1,5 +1,6 @@
 """Local development portal. Run with python3 app.py."""
 import html
+import auth
 import os
 import secrets
 import sqlite3
@@ -17,6 +18,7 @@ def connect():
 
 def init_db():
     with connect() as db:
+        auth.init(db)
         db.executescript('''
         CREATE TABLE IF NOT EXISTS pus (
           id INTEGER PRIMARY KEY, lga TEXT NOT NULL CHECK(lga IN ('Apa','Agatu')),
@@ -80,8 +82,8 @@ def page(message=''):
     agentform=form('agent','<label>Polling unit'+select('pu_id',options)+'</label>'+field('name','Agent name')+field('phone','Phone','tel')+'<label>Assignment'+select('role',[(x,x) for x in ('Primary','Backup')])+'</label><label>Status'+select('status',[(x,x) for x in ('Pending','Confirmed','Trained')])+'</label><label><input type="checkbox" name="consent" value="yes" required> Agent agreed to storage of these details for this assignment</label>') if pus else '<p>Add a polling unit first.</p>'
     reportform=form('report','<label>Polling unit'+select('pu_id',options)+'</label><label>Category'+select('category',[(x,x) for x in ('Logistics','Incident','Community concern')])+'</label><label>Report<textarea name="detail" required maxlength="2000"></textarea></label><p>Record operational facts. Do not include voter identities or political affiliations.</p>') if pus else '<p>Add a polling unit first.</p>'
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
-    <aside>Development only · Login is not implemented. Use sample data on this computer.</aside>
-    <nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a></nav><p role="status">{esc(message)}</p>
+    <aside>Local development · Administrator access · Use sample data until production deployment is ready.</aside>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a></nav><p role="status">{esc(message)}</p>
     <div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] for p in pus):,}</strong>Registered voters recorded</article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
     <section id="pus"><h2>Polling units</h2><p>Totals cover entered PUs only. Enter sourced figures; no official dataset is preloaded.</p>{puform}{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],p['voters'],p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
@@ -91,31 +93,73 @@ def page(message=''):
     </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'</main></body></html>'
 
 class Handler(BaseHTTPRequestHandler):
-    def respond(self,status,message=''):
-        payload=page(message).encode()
+    def respond(self,status,document,cookie=None):
+        payload=document.encode()
         self.send_response(status)
         self.send_header('Content-Type','text/html; charset=utf-8')
         self.send_header('Content-Length',str(len(payload)))
         self.send_header('Cache-Control','no-store')
         self.send_header('X-Content-Type-Options','nosniff')
         self.send_header('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+        if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
         self.end_headers(); self.wfile.write(payload)
+    def redirect(self,path,cookie=None):
+        self.send_response(303)
+        self.send_header('Location',path)
+        self.send_header('Cache-Control','no-store')
+        if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
+        self.end_headers()
     def do_GET(self):
-        if self.path!='/': self.send_error(404); return
-        self.respond(200)
+        if self.path not in ('/','/login'): self.send_error(404); return
+        token,session=auth.get_session(self.headers.get('Cookie'))
+        if session and session['authenticated']:
+            if self.path=='/login': self.redirect('/'); return
+            self.respond(200,page().replace(TOKEN,session['csrf'])); return
+        if self.path=='/': self.redirect('/login'); return
+        cookie=None
+        if not session: cookie,session=auth.new_session()
+        self.respond(200,auth.login_page(session['csrf']),cookie)
     def do_POST(self):
-        if self.path not in ('/pu','/agent','/report'): self.send_error(404); return
+        if self.path not in ('/login','/logout','/pu','/agent','/report'): self.send_error(404); return
+        token,session=auth.get_session(self.headers.get('Cookie'))
+        if not session or (self.path!='/login' and not session['authenticated']):
+            self.redirect('/login'); return
         try:
             size=int(self.headers.get('Content-Length','0'))
             if not 0<size<=16384: self.send_error(413); return
             data={k:v[0] for k,v in parse_qs(self.rfile.read(size).decode()).items()}
-            if not secrets.compare_digest(data.get('csrf',''),TOKEN): self.send_error(403); return
+            if not secrets.compare_digest(data.get('csrf',''),session['csrf']): self.send_error(403); return
+            if self.path=='/login':
+                if not auth.allow_attempt(self.client_address[0]):
+                    self.respond(429,auth.login_page(session['csrf'],'Too many attempts. Try again in five minutes.')); return
+                with connect() as db: valid=auth.verify(db,data.get('username',''),data.get('password',''))
+                if not valid:
+                    self.respond(401,auth.login_page(session['csrf'],'Invalid username or password.')); return
+                auth.revoke(token)
+                new_token,_=auth.new_session(True)
+                self.redirect('/',new_token); return
+            if self.path=='/logout':
+                auth.revoke(token); self.redirect('/login',''); return
             save(self.path[1:],data)
-        except (ValueError,sqlite3.IntegrityError) as error:
-            self.respond(400,'Could not save. Check fields, unique PU code and polling unit assignment. '+str(error)); return
-        self.send_response(303); self.send_header('Location','/'); self.end_headers()
+        except (ValueError,sqlite3.IntegrityError):
+            self.respond(400,page('Could not save. Check required fields, unique PU code and polling unit assignment.').replace(TOKEN,session['csrf'])); return
+        self.redirect('/')
 
 if __name__=='__main__':
+    import sys
     init_db()
+    if '--setup-admin' in sys.argv:
+        from getpass import getpass
+        try:
+            username=input('Administrator username: ')
+            password=getpass('Password (at least 12 characters): ')
+            if password!=getpass('Confirm password: '): raise ValueError('Passwords do not match.')
+            with connect() as db: auth.configure(db,username,password)
+        except ValueError as error: raise SystemExit(str(error))
+        print('Administrator saved. Restart the server if it is running.')
+        raise SystemExit(0)
+    with connect() as db:
+        if not db.execute('SELECT 1 FROM administrator').fetchone():
+            raise SystemExit('First run: python3 app.py --setup-admin')
     print('Development portal: http://127.0.0.1:8000 (Ctrl+C to stop)',flush=True)
     ThreadingHTTPServer(('127.0.0.1',8000),Handler).serve_forever()
