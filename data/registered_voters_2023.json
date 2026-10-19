@@ -1,0 +1,958 @@
+{
+  "year": 2023,
+  "label": "2023 registered voters \u2014 historical baseline",
+  "publisher": "CCIJ public dataset",
+  "source_url": "https://github.com/anndawn/Nigeria-2023-election/blob/e38e3bc9a22ac005564a9e95b4e846208a594522/voter_info.csv",
+  "methodology_url": "https://github.com/anndawn/Nigeria-2023-election/blob/e38e3bc9a22ac005564a9e95b4e846208a594522/README.md",
+  "source_commit": "e38e3bc9a22ac005564a9e95b4e846208a594522",
+  "source_field": "registered_use",
+  "source_sha256": "2f630cf3e488d6d46bb79d9be49902fdf1efb89c5c7ead6cc113a419e7c41e64",
+  "retrieved_on": "2026-10-19",
+  "reference_note": "Methodology attributes registered-voter data to INEC early-2023 publication; exact publication date unknown. Not independently certified by INEC. No individual voter records.",
+  "records": [
+    {
+      "code": "07/02/01/001",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/01/002",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/01/003",
+      "registered_voters": 567
+    },
+    {
+      "code": "07/02/01/004",
+      "registered_voters": 505
+    },
+    {
+      "code": "07/02/01/005",
+      "registered_voters": 640
+    },
+    {
+      "code": "07/02/01/006",
+      "registered_voters": 830
+    },
+    {
+      "code": "07/02/01/007",
+      "registered_voters": 469
+    },
+    {
+      "code": "07/02/01/008",
+      "registered_voters": 797
+    },
+    {
+      "code": "07/02/01/009",
+      "registered_voters": 638
+    },
+    {
+      "code": "07/02/01/010",
+      "registered_voters": 605
+    },
+    {
+      "code": "07/02/01/011",
+      "registered_voters": 528
+    },
+    {
+      "code": "07/02/01/012",
+      "registered_voters": 789
+    },
+    {
+      "code": "07/02/01/013",
+      "registered_voters": 675
+    },
+    {
+      "code": "07/02/01/014",
+      "registered_voters": 449
+    },
+    {
+      "code": "07/02/01/015",
+      "registered_voters": 440
+    },
+    {
+      "code": "07/02/01/016",
+      "registered_voters": 137
+    },
+    {
+      "code": "07/02/02/001",
+      "registered_voters": 752
+    },
+    {
+      "code": "07/02/02/002",
+      "registered_voters": 838
+    },
+    {
+      "code": "07/02/02/003",
+      "registered_voters": 964
+    },
+    {
+      "code": "07/02/02/004",
+      "registered_voters": 511
+    },
+    {
+      "code": "07/02/02/005",
+      "registered_voters": 492
+    },
+    {
+      "code": "07/02/02/006",
+      "registered_voters": 331
+    },
+    {
+      "code": "07/02/02/007",
+      "registered_voters": 765
+    },
+    {
+      "code": "07/02/02/008",
+      "registered_voters": 262
+    },
+    {
+      "code": "07/02/02/009",
+      "registered_voters": 127
+    },
+    {
+      "code": "07/02/02/010",
+      "registered_voters": 141
+    },
+    {
+      "code": "07/02/03/001",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/03/002",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/03/003",
+      "registered_voters": 961
+    },
+    {
+      "code": "07/02/03/004",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/03/005",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/03/006",
+      "registered_voters": 706
+    },
+    {
+      "code": "07/02/03/007",
+      "registered_voters": 441
+    },
+    {
+      "code": "07/02/03/008",
+      "registered_voters": 754
+    },
+    {
+      "code": "07/02/03/009",
+      "registered_voters": 569
+    },
+    {
+      "code": "07/02/03/010",
+      "registered_voters": 579
+    },
+    {
+      "code": "07/02/03/011",
+      "registered_voters": 638
+    },
+    {
+      "code": "07/02/03/012",
+      "registered_voters": 869
+    },
+    {
+      "code": "07/02/03/013",
+      "registered_voters": 415
+    },
+    {
+      "code": "07/02/03/014",
+      "registered_voters": 185
+    },
+    {
+      "code": "07/02/03/015",
+      "registered_voters": 137
+    },
+    {
+      "code": "07/02/03/016",
+      "registered_voters": 616
+    },
+    {
+      "code": "07/02/03/017",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/03/018",
+      "registered_voters": 552
+    },
+    {
+      "code": "07/02/03/019",
+      "registered_voters": 134
+    },
+    {
+      "code": "07/02/03/020",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/04/001",
+      "registered_voters": 789
+    },
+    {
+      "code": "07/02/04/002",
+      "registered_voters": 992
+    },
+    {
+      "code": "07/02/04/003",
+      "registered_voters": 524
+    },
+    {
+      "code": "07/02/04/004",
+      "registered_voters": 861
+    },
+    {
+      "code": "07/02/04/005",
+      "registered_voters": 160
+    },
+    {
+      "code": "07/02/04/006",
+      "registered_voters": 225
+    },
+    {
+      "code": "07/02/05/001",
+      "registered_voters": 613
+    },
+    {
+      "code": "07/02/05/002",
+      "registered_voters": 411
+    },
+    {
+      "code": "07/02/05/003",
+      "registered_voters": 767
+    },
+    {
+      "code": "07/02/05/004",
+      "registered_voters": 492
+    },
+    {
+      "code": "07/02/05/005",
+      "registered_voters": 765
+    },
+    {
+      "code": "07/02/06/001",
+      "registered_voters": 609
+    },
+    {
+      "code": "07/02/06/002",
+      "registered_voters": 876
+    },
+    {
+      "code": "07/02/06/003",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/06/004",
+      "registered_voters": 919
+    },
+    {
+      "code": "07/02/06/005",
+      "registered_voters": 375
+    },
+    {
+      "code": "07/02/06/006",
+      "registered_voters": 882
+    },
+    {
+      "code": "07/02/06/007",
+      "registered_voters": 83
+    },
+    {
+      "code": "07/02/06/008",
+      "registered_voters": 584
+    },
+    {
+      "code": "07/02/06/009",
+      "registered_voters": 115
+    },
+    {
+      "code": "07/02/06/010",
+      "registered_voters": 178
+    },
+    {
+      "code": "07/02/07/001",
+      "registered_voters": 470
+    },
+    {
+      "code": "07/02/07/002",
+      "registered_voters": 741
+    },
+    {
+      "code": "07/02/07/003",
+      "registered_voters": 451
+    },
+    {
+      "code": "07/02/07/004",
+      "registered_voters": 733
+    },
+    {
+      "code": "07/02/07/005",
+      "registered_voters": 754
+    },
+    {
+      "code": "07/02/07/006",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/07/007",
+      "registered_voters": 359
+    },
+    {
+      "code": "07/02/07/008",
+      "registered_voters": 326
+    },
+    {
+      "code": "07/02/07/009",
+      "registered_voters": 242
+    },
+    {
+      "code": "07/02/07/010",
+      "registered_voters": 536
+    },
+    {
+      "code": "07/02/07/011",
+      "registered_voters": 1014
+    },
+    {
+      "code": "07/02/07/012",
+      "registered_voters": 417
+    },
+    {
+      "code": "07/02/07/013",
+      "registered_voters": 130
+    },
+    {
+      "code": "07/02/08/001",
+      "registered_voters": 738
+    },
+    {
+      "code": "07/02/08/002",
+      "registered_voters": 528
+    },
+    {
+      "code": "07/02/08/003",
+      "registered_voters": 651
+    },
+    {
+      "code": "07/02/08/004",
+      "registered_voters": 486
+    },
+    {
+      "code": "07/02/08/005",
+      "registered_voters": 556
+    },
+    {
+      "code": "07/02/08/006",
+      "registered_voters": 189
+    },
+    {
+      "code": "07/02/08/007",
+      "registered_voters": 437
+    },
+    {
+      "code": "07/02/08/008",
+      "registered_voters": 397
+    },
+    {
+      "code": "07/02/09/001",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/09/002",
+      "registered_voters": 674
+    },
+    {
+      "code": "07/02/09/003",
+      "registered_voters": 871
+    },
+    {
+      "code": "07/02/09/004",
+      "registered_voters": 705
+    },
+    {
+      "code": "07/02/09/005",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/09/006",
+      "registered_voters": 401
+    },
+    {
+      "code": "07/02/09/007",
+      "registered_voters": 540
+    },
+    {
+      "code": "07/02/10/001",
+      "registered_voters": 817
+    },
+    {
+      "code": "07/02/10/002",
+      "registered_voters": 599
+    },
+    {
+      "code": "07/02/10/003",
+      "registered_voters": 576
+    },
+    {
+      "code": "07/02/10/004",
+      "registered_voters": 860
+    },
+    {
+      "code": "07/02/10/005",
+      "registered_voters": 914
+    },
+    {
+      "code": "07/02/10/006",
+      "registered_voters": 659
+    },
+    {
+      "code": "07/02/10/007",
+      "registered_voters": 939
+    },
+    {
+      "code": "07/02/10/008",
+      "registered_voters": 469
+    },
+    {
+      "code": "07/02/10/009",
+      "registered_voters": 431
+    },
+    {
+      "code": "07/02/10/010",
+      "registered_voters": 832
+    },
+    {
+      "code": "07/02/10/011",
+      "registered_voters": 656
+    },
+    {
+      "code": "07/02/10/012",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/02/10/013",
+      "registered_voters": 318
+    },
+    {
+      "code": "07/02/10/014",
+      "registered_voters": 474
+    },
+    {
+      "code": "07/02/10/015",
+      "registered_voters": 76
+    },
+    {
+      "code": "07/02/10/016",
+      "registered_voters": 207
+    },
+    {
+      "code": "07/02/10/017",
+      "registered_voters": 364
+    },
+    {
+      "code": "07/03/01/001",
+      "registered_voters": 697
+    },
+    {
+      "code": "07/03/01/002",
+      "registered_voters": 767
+    },
+    {
+      "code": "07/03/01/003",
+      "registered_voters": 557
+    },
+    {
+      "code": "07/03/01/004",
+      "registered_voters": 800
+    },
+    {
+      "code": "07/03/01/005",
+      "registered_voters": 456
+    },
+    {
+      "code": "07/03/01/006",
+      "registered_voters": 570
+    },
+    {
+      "code": "07/03/01/007",
+      "registered_voters": 246
+    },
+    {
+      "code": "07/03/01/008",
+      "registered_voters": 475
+    },
+    {
+      "code": "07/03/01/009",
+      "registered_voters": 696
+    },
+    {
+      "code": "07/03/01/010",
+      "registered_voters": 85
+    },
+    {
+      "code": "07/03/02/001",
+      "registered_voters": 965
+    },
+    {
+      "code": "07/03/02/002",
+      "registered_voters": 803
+    },
+    {
+      "code": "07/03/02/003",
+      "registered_voters": 687
+    },
+    {
+      "code": "07/03/02/004",
+      "registered_voters": 232
+    },
+    {
+      "code": "07/03/02/005",
+      "registered_voters": 242
+    },
+    {
+      "code": "07/03/02/006",
+      "registered_voters": 173
+    },
+    {
+      "code": "07/03/02/007",
+      "registered_voters": 219
+    },
+    {
+      "code": "07/03/03/001",
+      "registered_voters": 693
+    },
+    {
+      "code": "07/03/03/002",
+      "registered_voters": 469
+    },
+    {
+      "code": "07/03/03/003",
+      "registered_voters": 931
+    },
+    {
+      "code": "07/03/03/004",
+      "registered_voters": 285
+    },
+    {
+      "code": "07/03/03/005",
+      "registered_voters": 488
+    },
+    {
+      "code": "07/03/03/006",
+      "registered_voters": 439
+    },
+    {
+      "code": "07/03/03/007",
+      "registered_voters": 1000
+    },
+    {
+      "code": "07/03/03/008",
+      "registered_voters": 819
+    },
+    {
+      "code": "07/03/03/009",
+      "registered_voters": 640
+    },
+    {
+      "code": "07/03/03/010",
+      "registered_voters": 144
+    },
+    {
+      "code": "07/03/03/011",
+      "registered_voters": 246
+    },
+    {
+      "code": "07/03/04/001",
+      "registered_voters": 609
+    },
+    {
+      "code": "07/03/04/002",
+      "registered_voters": 402
+    },
+    {
+      "code": "07/03/04/003",
+      "registered_voters": 594
+    },
+    {
+      "code": "07/03/04/004",
+      "registered_voters": 739
+    },
+    {
+      "code": "07/03/04/005",
+      "registered_voters": 254
+    },
+    {
+      "code": "07/03/04/006",
+      "registered_voters": 485
+    },
+    {
+      "code": "07/03/04/007",
+      "registered_voters": 423
+    },
+    {
+      "code": "07/03/04/008",
+      "registered_voters": 310
+    },
+    {
+      "code": "07/03/04/009",
+      "registered_voters": 477
+    },
+    {
+      "code": "07/03/04/010",
+      "registered_voters": 238
+    },
+    {
+      "code": "07/03/05/001",
+      "registered_voters": 726
+    },
+    {
+      "code": "07/03/05/002",
+      "registered_voters": 601
+    },
+    {
+      "code": "07/03/05/003",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/05/004",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/05/005",
+      "registered_voters": 570
+    },
+    {
+      "code": "07/03/05/006",
+      "registered_voters": 346
+    },
+    {
+      "code": "07/03/05/007",
+      "registered_voters": 756
+    },
+    {
+      "code": "07/03/05/008",
+      "registered_voters": 484
+    },
+    {
+      "code": "07/03/05/009",
+      "registered_voters": 367
+    },
+    {
+      "code": "07/03/05/010",
+      "registered_voters": 479
+    },
+    {
+      "code": "07/03/05/011",
+      "registered_voters": 532
+    },
+    {
+      "code": "07/03/05/012",
+      "registered_voters": 124
+    },
+    {
+      "code": "07/03/06/001",
+      "registered_voters": 1116
+    },
+    {
+      "code": "07/03/06/002",
+      "registered_voters": 307
+    },
+    {
+      "code": "07/03/06/003",
+      "registered_voters": 457
+    },
+    {
+      "code": "07/03/06/004",
+      "registered_voters": 845
+    },
+    {
+      "code": "07/03/06/005",
+      "registered_voters": 604
+    },
+    {
+      "code": "07/03/06/006",
+      "registered_voters": 1332
+    },
+    {
+      "code": "07/03/06/007",
+      "registered_voters": 446
+    },
+    {
+      "code": "07/03/06/008",
+      "registered_voters": 149
+    },
+    {
+      "code": "07/03/06/009",
+      "registered_voters": 231
+    },
+    {
+      "code": "07/03/06/010",
+      "registered_voters": 127
+    },
+    {
+      "code": "07/03/07/001",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/07/002",
+      "registered_voters": 813
+    },
+    {
+      "code": "07/03/07/003",
+      "registered_voters": 910
+    },
+    {
+      "code": "07/03/07/004",
+      "registered_voters": 555
+    },
+    {
+      "code": "07/03/07/005",
+      "registered_voters": 602
+    },
+    {
+      "code": "07/03/07/006",
+      "registered_voters": 1042
+    },
+    {
+      "code": "07/03/07/007",
+      "registered_voters": 548
+    },
+    {
+      "code": "07/03/07/008",
+      "registered_voters": 434
+    },
+    {
+      "code": "07/03/07/009",
+      "registered_voters": 407
+    },
+    {
+      "code": "07/03/07/010",
+      "registered_voters": 234
+    },
+    {
+      "code": "07/03/07/011",
+      "registered_voters": 120
+    },
+    {
+      "code": "07/03/07/012",
+      "registered_voters": 221
+    },
+    {
+      "code": "07/03/08/001",
+      "registered_voters": 547
+    },
+    {
+      "code": "07/03/08/002",
+      "registered_voters": 421
+    },
+    {
+      "code": "07/03/08/003",
+      "registered_voters": 564
+    },
+    {
+      "code": "07/03/08/004",
+      "registered_voters": 280
+    },
+    {
+      "code": "07/03/08/005",
+      "registered_voters": 471
+    },
+    {
+      "code": "07/03/08/006",
+      "registered_voters": 348
+    },
+    {
+      "code": "07/03/08/007",
+      "registered_voters": 905
+    },
+    {
+      "code": "07/03/08/008",
+      "registered_voters": 686
+    },
+    {
+      "code": "07/03/08/009",
+      "registered_voters": 755
+    },
+    {
+      "code": "07/03/08/010",
+      "registered_voters": 190
+    },
+    {
+      "code": "07/03/09/001",
+      "registered_voters": 724
+    },
+    {
+      "code": "07/03/09/002",
+      "registered_voters": 504
+    },
+    {
+      "code": "07/03/09/003",
+      "registered_voters": 574
+    },
+    {
+      "code": "07/03/09/004",
+      "registered_voters": 228
+    },
+    {
+      "code": "07/03/09/005",
+      "registered_voters": 458
+    },
+    {
+      "code": "07/03/09/006",
+      "registered_voters": 628
+    },
+    {
+      "code": "07/03/09/007",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/09/008",
+      "registered_voters": 519
+    },
+    {
+      "code": "07/03/09/009",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/09/010",
+      "registered_voters": 480
+    },
+    {
+      "code": "07/03/09/011",
+      "registered_voters": 397
+    },
+    {
+      "code": "07/03/09/012",
+      "registered_voters": 105
+    },
+    {
+      "code": "07/03/10/001",
+      "registered_voters": 815
+    },
+    {
+      "code": "07/03/10/002",
+      "registered_voters": 664
+    },
+    {
+      "code": "07/03/10/003",
+      "registered_voters": 951
+    },
+    {
+      "code": "07/03/10/004",
+      "registered_voters": 770
+    },
+    {
+      "code": "07/03/10/005",
+      "registered_voters": 537
+    },
+    {
+      "code": "07/03/10/006",
+      "registered_voters": 723
+    },
+    {
+      "code": "07/03/10/007",
+      "registered_voters": 90
+    },
+    {
+      "code": "07/03/10/008",
+      "registered_voters": 244
+    },
+    {
+      "code": "07/03/10/009",
+      "registered_voters": 302
+    },
+    {
+      "code": "07/03/11/001",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/11/002",
+      "registered_voters": 602
+    },
+    {
+      "code": "07/03/11/003",
+      "registered_voters": 787
+    },
+    {
+      "code": "07/03/11/004",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/11/005",
+      "registered_voters": 1580
+    },
+    {
+      "code": "07/03/11/006",
+      "registered_voters": 758
+    },
+    {
+      "code": "07/03/11/007",
+      "registered_voters": 801
+    },
+    {
+      "code": "07/03/11/008",
+      "registered_voters": 743
+    },
+    {
+      "code": "07/03/11/009",
+      "registered_voters": 918
+    },
+    {
+      "code": "07/03/11/010",
+      "registered_voters": 309
+    },
+    {
+      "code": "07/03/11/011",
+      "registered_voters": 158
+    },
+    {
+      "code": "07/03/11/012",
+      "registered_voters": 558
+    },
+    {
+      "code": "07/03/11/013",
+      "registered_voters": 327
+    },
+    {
+      "code": "07/03/11/014",
+      "registered_voters": 476
+    },
+    {
+      "code": "07/03/11/015",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/11/016",
+      "registered_voters": 217
+    },
+    {
+      "code": "07/03/11/017",
+      "registered_voters": 154
+    },
+    {
+      "code": "07/03/11/018",
+      "registered_voters": 750
+    },
+    {
+      "code": "07/03/11/019",
+      "registered_voters": 537
+    },
+    {
+      "code": "07/03/11/020",
+      "registered_voters": 115
+    },
+    {
+      "code": "07/03/11/021",
+      "registered_voters": 210
+    }
+  ]
+}

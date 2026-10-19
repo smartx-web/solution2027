@@ -27,7 +27,7 @@ python3 -m unittest -v
 - Persist data in SQLite across restarts. User input is escaped and writes require a session-specific CSRF token.
 - Require an enabled account before viewing portal records; permissions control changes. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per address.
 
-Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. Registered-voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
+Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. The bundled 2023 historical baseline is loaded separately; other voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
 
 ## Development boundary and next steps
 
@@ -51,7 +51,7 @@ lga,ward,code,name,voters,source,source_date
 
 Each row needs Apa or Agatu, a ward, a unique official PU code, a PU name, a nonnegative integer voter total, a source and an ISO date (`YYYY-MM-DD`). Keep codes as text so leading zeros survive. Quote CSV values containing commas.
 
-Preview validates all rows and shows the first 100 for review. Confirm to save. Imports accept at most 5,000 rows / 1 MB and never overwrite existing PU codes. A conflict or invalid row rejects the entire batch. Validation does not independently verify the figures: use an authoritative dataset and retain its source/date. No registered-voter figures have been imported.
+Preview validates all rows and shows the first 100 for review. Confirm to save. Imports accept at most 5,000 rows / 1 MB and never overwrite existing PU codes. A conflict or invalid row rejects the entire batch. Validation does not independently verify the figures: use an authoritative dataset and retain its source/date. The bundled historical baseline is independent of this manual CSV import workflow.
 
 
 ## Linked location dropdowns
@@ -95,3 +95,22 @@ For coordinators, choose one LGA. Leave ward scope blank for the entire LGA, or 
 To reset a password, expand the account under **Accounts** and enter a new password. Leave it blank when only changing permissions. Uncheck **Account enabled** to disable access. Updating any account invalidates its existing sessions on the next request, including changes to its role, area or password. You cannot disable/demote your own administrator account or remove the last active administrator. Existing usernames cannot be renamed.
 
 Stop the server and use `python3 app.py --setup-admin` for local administrator recovery, then restart. This local setup command requires access to the server/database. Keep database files, password hashes and exports private. No real credentials should be committed to GitHub or shared in chat.
+
+
+## 2023 registered-voter baseline
+
+Startup loads `data/registered_voters_2023.json` into a separate, year-keyed `voter_baselines` table. It contains 236 unique PU totals, exactly matching the bundled directory:
+
+| LGA | Polling units | 2023 registered voters |
+| --- | ---: | ---: |
+| Apa | 124 | 66,720 |
+| Agatu | 112 | 64,315 |
+| Total | 236 | 131,035 |
+
+Source: CCIJ public repository `anndawn/Nigeria-2023-election`, `voter_info.csv`, field `registered_use`, pinned commit `e38e3bc9a22ac005564a9e95b4e846208a594522`. The source file's SHA-256, retrieval date (2026-10-19), source URL and methodology URL are retained in the bundled JSON. CCIJ's methodology attributes the registered-voter dataset to an INEC early-2023 publication; its exact publication date is unknown. These are historical aggregate figures, not individual voter records, 2027 totals or a newly certified INEC register.
+
+The dashboard, PU table, location-selection messages and PU CSV export identify the 2023 baseline explicitly. Baseline totals follow account scope and active dashboard filters. A PU outside the historical file displays `Not recorded`, never an estimated value.
+
+Other manually entered voter totals and their sources/dates stay in `pus` and are shown separately. Startup does not overwrite them, reset known zeros, combine the two totals or change agent/report links. Subsequent changes to those sourced totals do not modify 2023 history. Repeated startups do not duplicate historical rows or import-log entries. A conflicting historical row stops startup for review rather than overwriting it. Baselines match exact PU codes; renamed codes must be reconciled deliberately.
+
+Update instructions: stop the server, back up the SQLite database, run `git pull origin main`, then `python3 app.py`. Baseline integration happens automatically during startup; do not paste the earlier review CSV into the directory-import form.

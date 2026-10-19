@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import auth
 import access
+import baseline
 import os
 import secrets
 import sqlite3
@@ -24,6 +25,7 @@ def connect():
 def init_db(seed_directory=False):
     with connect() as db:
         auth.init(db)
+        baseline.init(db)
         db.executescript('''
         CREATE TABLE IF NOT EXISTS activity_log (
           id INTEGER PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,
@@ -67,6 +69,8 @@ def init_db(seed_directory=False):
             rows=json.loads((Path(__file__).parent/'data'/'apa_agatu_directory.json').read_text())
             db.executemany('INSERT OR IGNORE INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,NULL,?,?)',
                            [(r['lga'],r['ward'],r['code'],r['name'],'User-supplied Nigeria polling-unit directory snapshot','') for r in rows])
+            added=baseline.seed(db)
+            if added: log_activity(db,'Imported','historical baseline',None,f'{added} PU totals added for 2023; existing sourced totals preserved.')
 
 
 PU_COLUMNS = ('lga','ward','code','name','voters','source','source_date')
@@ -254,7 +258,7 @@ def import_preview(text):
 def filtered_records(filters=None):
     filters=filters or {}
     with connect() as db:
-        all_pus=[dict(r) for r in db.execute('SELECT * FROM pus ORDER BY lga,ward,code')]
+        all_pus=[dict(r) for r in db.execute('SELECT p.*,b.registered_voters AS voters_2023,b.source_url AS baseline_source_url,b.retrieved_on AS baseline_retrieved_on FROM pus p LEFT JOIN voter_baselines b ON b.pu_code=p.code AND b.year=2023 ORDER BY p.lga,p.ward,p.code')]
         all_agents=[dict(r) for r in db.execute('SELECT a.*,p.code,p.lga,p.ward,p.name AS pu_name FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NULL ORDER BY a.id DESC')]
         all_reports=[dict(r) for r in db.execute('SELECT r.*,p.code,p.lga,p.ward,p.name AS pu_name FROM reports r JOIN pus p ON p.id=r.pu_id ORDER BY r.id DESC')]
     all_pus=[p for p in all_pus if access.in_scope(p)]
@@ -290,7 +294,7 @@ def filter_panel(all_pus,filters):
 def export_csv(kind,filters=None):
     _,pus,agents,reports,_=filtered_records(filters)
     if kind=='pus':
-        headers=['lga','ward','code','name','voters','source','source_date']
+        headers=['lga','ward','code','name','voters_2023','baseline_source_url','baseline_retrieved_on','voters','source','source_date']
         rows=[[p[k] for k in headers] for p in pus]
     elif kind=='agents':
         headers=['lga','ward','pu_code','pu_name','agent_name','phone','role','status']
@@ -360,7 +364,10 @@ def page(message='',extra='',filters=None):
     manual_pu='<details><summary>Add a PU missing from the snapshot</summary>'+puform+'</details>' if access.is_admin() else ''
     agentform=form('agent',location_picker(all_pus)+field('name','Agent name')+field('phone','Phone','tel')+'<label>Assignment'+select('role',[(x,x) for x in ('Primary','Backup')])+'</label><label>Status'+select('status',[(x,x) for x in ('Pending','Confirmed','Trained')])+'</label><label><input type="checkbox" name="consent" value="yes" required> Agent agreed to storage of these details for this assignment</label>') if all_pus else '<p>Add a polling unit first.</p>'
     reportform=form('report',location_picker(all_pus)+'<label>Category'+select('category',[(x,x) for x in ('Logistics','Incident','Community concern')])+'</label><label>Report<textarea name="detail" required maxlength="2000"></textarea></label><p>Record operational facts. Do not include voter identities or political affiliations.</p>') if all_pus else '<p>Add a polling unit first.</p>'
-    directoryform=form('pu',location_picker(all_pus)+''.join('<input type="hidden" name="'+key+'" value="">' for key in ('id','lga','ward','code','name'))+field('voters','Registered voter total','number')+field('source','Voter figure source')+field('source_date','Voter figure source date','date')) if all_pus else '<p>Add or import polling units first.</p>'
+    directoryform=form('pu',location_picker(all_pus)+''.join('<input type="hidden" name="'+key+'" value="">' for key in ('id','lga','ward','code','name'))+field('voters','Other sourced voter total','number')+field('source','Voter figure source')+field('source_date','Voter figure source date','date')) if all_pus else '<p>Add or import polling units first.</p>'
+    baseline_count=sum(p['voters_2023'] is not None for p in pus)
+    baseline_total=sum(p['voters_2023'] or 0 for p in pus)
+    baseline_note='<p>2023 totals are a historical baseline from the CCIJ public dataset, whose methodology attributes the register figures to INEC’s early-2023 publication. They are not 2027 figures or a newly certified INEC register. Other entered totals are shown separately and are never added to the historical baseline.</p><p><a href="https://github.com/anndawn/Nigeria-2023-election/blob/e38e3bc9a22ac005564a9e95b4e846208a594522/README.md" target="_blank" rel="noopener noreferrer">Source and methodology</a></p>'
     user=access.current_user.get()
     identity=esc(user['username']+' · '+user['role']) if user else 'Local setup'
     admin_links='<a href="#import">Import PUs</a><a href="#history">Activity log</a><a href="#accounts">Accounts</a>' if access.is_admin() else ''
@@ -368,8 +375,8 @@ def page(message='',extra='',filters=None):
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
     <aside>Signed in: {identity}<br>Local development · Use sample data until production deployment is ready.</aside>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
-    {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Registered voters recorded<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
-    {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{directoryform}{manual_pu}{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
+    {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Other sourced voter totals<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{baseline_total:,}</strong>2023 registered voters<br><small>Historical baseline · {baseline_count}/{len(pus)} PUs matched</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
+    {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{baseline_note}{directoryform}{manual_pu}{table(['LGA','Ward','Code','PU','2023 registered voters (historical)','Other entered total','Other total source','Other total source date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters_2023'] is None else p['voters_2023']),('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
     <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section>{import_section}{history_panel()}{account_panel()}'''
     return '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solution 2027</title><style>
@@ -416,7 +423,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/login': self.redirect('/'); return
             if path=='/api/locations':
                 with connect() as db:
-                    rows=[dict(r) for r in db.execute('SELECT id,lga,ward,code,name,voters,source,source_date FROM pus ORDER BY code') if access.in_scope(r)]
+                    rows=[dict(r) for r in db.execute('SELECT p.id,p.lga,p.ward,p.code,p.name,p.voters,p.source,p.source_date,b.registered_voters AS voters_2023 FROM pus p LEFT JOIN voter_baselines b ON b.pu_code=p.code AND b.year=2023 ORDER BY p.code') if access.in_scope(r)]
                 self.respond(200,json.dumps(rows),content_type='application/json'); return
             if path=='/portal.js':
                 self.respond(200,(Path(__file__).parent/'portal.js').read_text(),content_type='text/javascript'); return

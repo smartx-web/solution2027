@@ -40,7 +40,7 @@
             form.elements.source_date.value = '';
           }
         }
-        status.textContent = row ? `${row.code} — ${row.name}. Registered voters: ${row.voters === null ? 'not recorded' : row.voters}.` : 'Choose a polling unit.';
+        status.textContent = row ? `${row.code} — ${row.name}. 2023 historical baseline: ${row.voters_2023 == null ? 'not recorded' : row.voters_2023}. Other sourced total: ${row.voters === null ? 'not recorded' : row.voters}.` : 'Choose a polling unit.';
       }
       function selectWard() {
         const units = rows.filter(row => row.lga === lga.value && row.ward === ward.value);

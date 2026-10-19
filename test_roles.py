@@ -90,6 +90,20 @@ class RoleTests(unittest.TestCase):
             with self.assertRaises(ValueError):auth.manage_account(db,dict(id=str(root),username='admin',role='viewer',active='yes'),999)
             self.assertEqual(db.execute("SELECT role FROM users WHERE id=?",(root,)).fetchone()[0],'admin')
 
+    def test_historical_baseline_api_is_scoped(self):
+        self.seed()
+        app.init_db(seed_directory=True)
+        # Assign the account to a real snapshot ward before checking API access.
+        with app.connect() as db:
+            record_id=db.execute("SELECT id FROM users WHERE username='coord'").fetchone()[0]
+            auth.manage_account(db,dict(id=str(record_id),username='coord',role='coordinator',lga='Agatu',wards='EGBA',active='yes'),1)
+        self.sign_in('coord')
+        rows=json.loads(self.request('/api/locations')[2])
+        self.assertEqual(len(rows),16)
+        self.assertTrue(all(row['ward']=='EGBA' for row in rows))
+        self.assertEqual(sum(row['voters_2023'] for row in rows),9569)
+        self.assertTrue(all(row['voters'] is None for row in rows))
+
     def test_legacy_admin_is_migrated(self):
         with app.connect() as db: db.execute('DROP TABLE users')
         app.init_db()
