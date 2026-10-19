@@ -25,15 +25,15 @@ python3 -m unittest -v
 - Track confirmed PU coverage (Confirmed or Trained assignments), voter totals and agent assignments.
 - Add operational field reports for logistics, incidents and community concerns.
 - Persist data in SQLite across restarts. User input is escaped and writes require a session-specific CSRF token.
-- Require administrator login before viewing or changing portal records. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per address.
+- Require an enabled account before viewing portal records; permissions control changes. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per address.
 
 Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. Registered-voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
 
 ## Development boundary and next steps
 
-One administrator account is supported. Coordinator roles are deferred. The server binds only to localhost. Continue using sample data: production hosting, HTTPS, access roles, backup procedures and deployment review are still needed before real use. This is a development server, not a production deployment. Sessions and login throttles are held in memory for this single-process local server; restarting signs everyone out. The local HTTP cookie uses HttpOnly and SameSite=Strict. Production deployment must use HTTPS with Secure cookies.
+Multiple administrator, viewer and coordinator accounts are supported. The server binds only to localhost. Continue using sample data: production hosting, HTTPS, backup procedures and deployment review are still needed before real use. This is a development server, not a production deployment. Sessions and login throttles are held in memory for this single-process local server; restarting signs everyone out. The local HTTP cookie uses HttpOnly and SameSite=Strict. Production deployment must use HTTPS with Secure cookies.
 
-Next: coordinator roles and production database/backups.
+Next: production hosting, database and backups.
 
 The portal does not store individual voter records, PVC/NIN details, or political-affiliation profiles. Operational reports should not include those details.
 
@@ -66,13 +66,32 @@ The bundled snapshot contains 11 Apa wards / 124 PUs and 10 Agatu wards / 112 PU
 
 Use **Find records** to filter by LGA, ward, PU/agent search or confirmed-agent coverage. Search matches PU name/code and agent name/phone; results include all assignments and reports belonging to matching PUs. Coverage includes Confirmed and Trained agents. Pending assignments do not count as confirmed coverage. Dashboard counts and CSV downloads follow the same filters. Clear filters to restore the full view.
 
-Authenticated administrators can download polling units, agent assignments or field reports as CSV. Unknown voter totals export as blank. Spreadsheet formula prefixes are escaped and phone numbers receive a leading apostrophe to retain leading zeros. Keep agent exports restricted to authorised coordinators. Creating/editing records remains available across the full directory even when the displayed records are filtered.
+Authenticated accounts can download polling units, agent assignments or field reports as CSV within their permitted area. Unknown voter totals export as blank. Spreadsheet formula prefixes are escaped and phone numbers receive a leading apostrophe to retain leading zeros. Keep agent exports restricted to authorised coordinators. Creating/editing records remains available across the permitted directory even when the displayed records are filtered.
 
 
 ## Archive and activity history
 
 Under **Edit records**, expand an active agent and confirm **Archive assignment**. This preserves the record while excluding it from active assignment lists, confirmed coverage and agent CSV exports. Use **Archived agents** to restore an assignment after confirming ongoing consent. Archived assignments must be restored before editing. Archive and activity sections show portal-wide records independently of location filters.
 
-The **Activity log** shows the latest 50 successful record creates, edits, PU imports, archives and restorations, with administrator name, record ID and UTC time. Edit entries list changed field names; they do not copy contact details or report contents. No-op edits and rejected actions do not create change entries. Changes and their log entries commit in the same database transaction. Historical edits made before this feature, direct SQL changes, directory seeding and login events are not logged. This local application log is not tamper-proof against someone who has database file access.
+The **Activity log** shows the latest 50 successful record creates, edits, PU imports, archives and restorations, with the acting account username, record ID and UTC time. Edit entries list changed field names; they do not copy contact details or report contents. No-op edits and rejected actions do not create change entries. Changes and their log entries commit in the same database transaction. Historical edits made before this feature, direct SQL changes, directory seeding and login events are not logged. This local application log is not tamper-proof against someone who has database file access.
 
 Existing databases gain the archive column and activity table automatically on startup. Existing agents remain active. Keep a database backup before updates.
+
+
+## Accounts and area permissions
+
+Existing administrator credentials migrate automatically. Sign in with your current account and open **Accounts**. No default credentials or extra users are created. Create a separate account for each person:
+
+| Role | Access |
+| --- | --- |
+| Administrator | Full portal; create/reset/disable accounts; manage directory and imports; view activity log |
+| Viewer | View and export all portal records; cannot change records or manage accounts |
+| Coordinator | View/export assigned LGA or selected wards; manage agents, reports, archive/restore and sourced voter totals there |
+
+For Solomon, create a **Viewer** account if he needs full oversight without editing. Create a separate **Administrator** account only if he should manage records and accounts too.
+
+For coordinators, choose one LGA. Leave ward scope blank for the entire LGA, or enter exact directory ward names one per line. Coordinators cannot add/rename/move directory PUs, import CSVs, manage users or see the portal-wide activity log. Areas are checked on the server for pages, location APIs, downloads and submitted record IDs, including moving agent assignments. Dashboard filters do not widen permissions.
+
+To reset a password, expand the account under **Accounts** and enter a new password. Leave it blank when only changing permissions. Uncheck **Account enabled** to disable access. Updating any account invalidates its existing sessions on the next request, including changes to its role, area or password. You cannot disable/demote your own administrator account or remove the last active administrator. Existing usernames cannot be renamed.
+
+Stop the server and use `python3 app.py --setup-admin` for local administrator recovery, then restart. This local setup command requires access to the server/database. Keep database files, password hashes and exports private. No real credentials should be committed to GitHub or shared in chat.

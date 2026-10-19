@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import auth
+import access
 import os
 import secrets
 import sqlite3
@@ -105,17 +106,20 @@ def parse_import(text):
     return rows
 
 def log_activity(db,action,entity,record_id,summary):
+    user=access.current_user.get()
     admin=db.execute('SELECT username FROM administrator WHERE id=1').fetchone()
     db.execute('INSERT INTO activity_log(actor,action,entity,record_id,summary) VALUES(?,?,?,?,?)',
-               (admin[0] if admin else 'Local setup',action,entity,record_id,summary))
+               (user['username'] if user else (admin[0] if admin else 'Local setup'),action,entity,record_id,summary))
 
 def set_agent_archived(data,archived):
+    access.require_write()
     if data.get('confirmed')!='yes': raise ValueError('Confirm the action first.')
     record_id=int(required(data,'id'))
     with connect() as db:
         db.execute('BEGIN IMMEDIATE')
-        agent=db.execute('SELECT archived_at FROM agents WHERE id=?',(record_id,)).fetchone()
+        agent=db.execute('SELECT a.archived_at,p.lga,p.ward FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.id=?',(record_id,)).fetchone()
         if not agent: raise ValueError('Agent assignment does not exist.')
+        access.require_scope(agent)
         if bool(agent['archived_at'])==archived: raise ValueError('Agent assignment is already in that state.')
         if archived:
             db.execute('UPDATE agents SET archived_at=CURRENT_TIMESTAMP WHERE id=?',(record_id,))
@@ -125,6 +129,7 @@ def set_agent_archived(data,archived):
                      'Assignment removed from active coverage and exports.' if archived else 'Assignment returned to active coverage and exports.')
 
 def import_pus(text):
+    access.require_admin()
     rows=parse_import(text)
     with connect() as db:
         # A single transaction: a duplicate or invalid row rolls back the whole batch.
@@ -133,6 +138,8 @@ def import_pus(text):
     return len(rows)
 
 def save(kind, data):
+    access.require_write()
+    if kind=='agent' and data.get('consent')!='yes': raise ValueError('Agent consent is required.')
     def req(key,maximum=500): return required(data,key,maximum)
     editing=bool(data.get('id'))
     if editing and kind not in ('pu','agent'): raise ValueError('Unsupported edit.')
@@ -144,6 +151,19 @@ def save(kind, data):
             before=db.execute(f'SELECT * FROM {table_name} WHERE id=?',(int(req('id')),)).fetchone()
             if not before: raise ValueError('Record no longer exists.')
             if kind=='agent' and before['archived_at']: raise ValueError('Restore the archived assignment before editing it.')
+        if kind=='pu':
+            if not access.is_admin():
+                if not before: raise PermissionError('Only administrators may add directory records.')
+                access.require_scope(before)
+                if any(req(k)!=str(before[k]) for k in ('lga','ward','code','name')):
+                    raise PermissionError('Coordinators may update voter totals and their sources, but cannot change the directory.')
+        if kind in ('agent','report'):
+            destination=db.execute('SELECT lga,ward FROM pus WHERE id=?',(int(req('pu_id')),)).fetchone()
+            if destination is None: raise sqlite3.IntegrityError('Polling unit does not exist.')
+            access.require_scope(destination)
+            if before:
+                origin=db.execute('SELECT lga,ward FROM pus WHERE id=?',(before['pu_id'],)).fetchone()
+                access.require_scope(origin)
         if kind in ('agent','report') and ('location_lga' in data or 'location_ward' in data):
             location=db.execute('SELECT lga,ward FROM pus WHERE id=?',(int(req('pu_id')),)).fetchone()
             if not location or location['lga']!=req('location_lga') or location['ward']!=req('location_ward'):
@@ -181,7 +201,8 @@ def select(name, values, selected=None):
 def field(name,label,typ='text',value=''):
     return f'<label>{label}<input name="{name}" type="{typ}" value="{esc(value)}" required maxlength="500"'+(' min="0" step="1"' if typ=='number' else '')+'></label>'
 def form(kind,content):
-    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report','archive-agent':'Archive assignment','restore-agent':'Restore assignment'}[kind]
+    if not access.can_write() or (kind in ('import-preview','import-confirm','user') and not access.is_admin()): return ''
+    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report','archive-agent':'Archive assignment','restore-agent':'Restore assignment','user':'Save account'}[kind]
     return f'<form method="post" action="/{kind}"><input type="hidden" name="csrf" value="{TOKEN}">{content}<button>{button}</button></form>'
 def table(headers,rows):
     return '<div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(h)}</th>' for h in headers)+'</tr></thead><tbody>'+(''.join('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in row)+'</tr>' for row in rows) or f'<tr><td colspan="{len(headers)}">No records yet.</td></tr>')+'</tbody></table></div>'
@@ -195,8 +216,9 @@ def location_picker(pus,selected=None):
     return '<div class="location-picker"><label>Local Government Area'+select('location_lga',lgas,lga)+'</label><label>Ward'+select('location_ward',wards,ward)+'</label><label>Polling unit'+select('pu_id',units,selected)+'</label><p class="directory-status" role="status">Choose LGA, then ward, then polling unit.</p></div>'
 
 def edit_forms(pus,agents,options,all_pus):
+    if not access.can_write(): return '<p>This account has viewing access.</p>'
     result='<h3>Edit polling units</h3>'
-    for pu in pus:
+    for pu in (pus if access.is_admin() else []):
         fields='<input type="hidden" name="id" value="'+str(pu['id'])+'">'
         fields+='<label>LGA'+select('lga',[(x,x) for x in ('Apa','Agatu')],pu['lga'])+'</label>'
         for key,label,typ in [('ward','Ward','text'),('code','Official PU code','text'),('name','PU name','text'),('voters','Registered voters','number'),('source','Figure source','text'),('source_date','Source date','date')]:
@@ -217,6 +239,7 @@ def import_form():
     return '<p>Paste CSV with this exact header. PU codes must be unique. Existing records are never overwritten.</p><code>'+','.join(PU_COLUMNS)+'</code>'+form('import-preview','<label>CSV data<textarea name="csv" required maxlength="1000000" placeholder="Paste the header and your sourced PU rows here"></textarea></label>')
 
 def import_preview(text):
+    access.require_admin()
     rows=parse_import(text)
     with connect() as db:
         existing={r[0] for r in db.execute('SELECT code FROM pus')}
@@ -234,6 +257,10 @@ def filtered_records(filters=None):
         all_pus=[dict(r) for r in db.execute('SELECT * FROM pus ORDER BY lga,ward,code')]
         all_agents=[dict(r) for r in db.execute('SELECT a.*,p.code,p.lga,p.ward,p.name AS pu_name FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NULL ORDER BY a.id DESC')]
         all_reports=[dict(r) for r in db.execute('SELECT r.*,p.code,p.lga,p.ward,p.name AS pu_name FROM reports r JOIN pus p ON p.id=r.pu_id ORDER BY r.id DESC')]
+    all_pus=[p for p in all_pus if access.in_scope(p)]
+    allowed_ids={p['id'] for p in all_pus}
+    all_agents=[a for a in all_agents if a['pu_id'] in allowed_ids]
+    all_reports=[r for r in all_reports if r['pu_id'] in allowed_ids]
     lga=filters.get('lga','').strip(); ward=filters.get('ward','').strip(); query=filters.get('q','').strip().casefold()
     coverage=filters.get('coverage','')
     if len(query)>120 or len(ward)>500 or lga not in ('','Apa','Agatu') or coverage not in ('','covered','uncovered'):
@@ -249,7 +276,7 @@ def filtered_records(filters=None):
 def filter_panel(all_pus,filters):
     lga=filters.get('lga',''); ward=filters.get('ward','')
     content='<section id="filters"><h2>Find records</h2><form method="get" action="/">'
-    content+='<label>LGA'+select('lga',[('','All LGAs')]+[(v,v) for v in ('Apa','Agatu')],lga).replace(' required','')+'</label>'
+    content+='<label>LGA'+select('lga',[('','All LGAs')]+[(v,v) for v in sorted({p['lga'] for p in all_pus})],lga).replace(' required','')+'</label>'
     wards=sorted({p['ward'] for p in all_pus if not lga or p['lga']==lga})
     content+='<label>Ward'+select('ward',[('','All wards')]+[(v,v) for v in wards],ward).replace(' required','')+'</label>'
     content+='<label>Search PU or agent<input name="q" value="'+esc(filters.get('q',''))+'" maxlength="120" placeholder="PU name, code, agent name or phone"></label>'
@@ -284,32 +311,67 @@ def export_csv(kind,filters=None):
 
 def history_panel():
     with connect() as db:
-        archived=db.execute('SELECT a.id,a.name,a.archived_at,p.code FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NOT NULL ORDER BY a.archived_at DESC,a.id DESC').fetchall()
-        history=db.execute('SELECT * FROM activity_log ORDER BY id DESC LIMIT 50').fetchall()
+        archived=db.execute('SELECT a.id,a.name,a.archived_at,p.code,p.lga,p.ward FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NOT NULL ORDER BY a.archived_at DESC,a.id DESC').fetchall()
+        archived=[a for a in archived if access.in_scope(a)]
+        history=db.execute('SELECT * FROM activity_log ORDER BY id DESC LIMIT 50').fetchall() if access.is_admin() else []
     content='<section id="archive"><h2>Archived assignments</h2><p>Archived agents are excluded from active lists, coverage and exports. This list is independent of dashboard filters. Restore only if the agent still consents to the assignment.</p>'
     if not archived: content+='<p>No archived assignments.</p>'
     for agent in archived:
         content+='<details><summary>'+esc(agent['name'])+' · '+esc(agent['code'])+' · '+esc(agent['archived_at'])+' UTC</summary>'
         content+=form('restore-agent','<input type="hidden" name="id" value="'+str(agent['id'])+'"><label><input type="checkbox" name="confirmed" value="yes" required> Confirm this agent still consents and should return to active assignments</label>')+'</details>'
+    if not access.is_admin(): return content+'</section>'
     content+='</section><section id="history"><h2>Activity log</h2><p>Latest 50 recorded changes across the portal, newest first. Times are UTC. Logs record changed field names, without copying phone numbers or report text. Earlier changes made before this feature are not reconstructed.</p>'
-    content+=table(['Time (UTC)','Administrator','Action','Record','Details'],[(r['created_at'],r['actor'],r['action'],r['entity']+(' #'+str(r['record_id']) if r['record_id'] else ''),r['summary']) for r in history])
+    content+=table(['Time (UTC)','Account','Action','Record','Details'],[(r['created_at'],r['actor'],r['action'],r['entity']+(' #'+str(r['record_id']) if r['record_id'] else ''),r['summary']) for r in history])
     return content+'</section>'
+
+def account_panel():
+    if not access.is_admin(): return ''
+    with connect() as db:
+        accounts=db.execute('SELECT id,username,role,lga,wards,active FROM users ORDER BY username').fetchall()
+    def account_fields(account=None):
+        account=dict(account) if account else dict(username='',role='viewer',lga='',wards='[]',active=1)
+        fields='<input type="hidden" name="id" value="'+str(account.get('id',''))+'">'
+        fields+=field('username','Username',value=account['username']).replace(' required maxlength',' readonly required maxlength') if account.get('id') else field('username','Username')
+        fields+='<label>Role'+select('role',[(v,label) for v,label in [('admin','Administrator'),('viewer','Viewer'),('coordinator','Coordinator')]],account['role'])+'</label>'
+        fields+='<label>Coordinator LGA'+select('lga',[('','Not applicable'),('Apa','Apa'),('Agatu','Agatu')],account['lga']).replace(' required','')+'</label>'
+        fields+='<label>Coordinator wards (one exact ward name per line; blank means entire LGA)<textarea name="wards" maxlength="10000">'+esc('\n'.join(json.loads(account['wards'])))+'</textarea></label>'
+        fields+='<label>'+('New password (leave blank to keep current)' if account.get('id') else 'Password (12 characters minimum)')+'<input name="password" type="password" autocomplete="new-password" maxlength="1024"'+('' if account.get('id') else ' required')+'></label>'
+        fields+='<label><input type="checkbox" name="active" value="yes"'+(' checked' if account['active'] else '')+'> Account enabled</label>'
+        return fields
+    content='<section id="accounts"><h2>Accounts and permissions</h2><p>Viewers can read and export the full portal. Coordinators can read, export and manage assignments/reports within one LGA or selected wards, and update sourced voter totals there. Administrators manage the full portal and accounts. Changing an account signs it out.</p><details><summary>Create an account</summary>'+form('user',account_fields())+'</details>'
+    for account in accounts:
+        content+='<details><summary>'+esc(account['username'])+' · '+esc(account['role'])+(' · disabled' if not account['active'] else '')+'</summary>'+form('user',account_fields(account))+'</details>'
+    return content+'</section>'
+
+def save_account(data):
+    access.require_admin()
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        user=access.current_user.get()
+        record_id=auth.manage_account(db,data,user['id'] if user else None)
+        log_activity(db,'Updated' if data.get('id') else 'Created','account',record_id,'Account credentials, role or area settings saved.')
 
 def page(message='',extra='',filters=None):
     filters=filters or {}
     all_pus,pus,agents,reports,covered=filtered_records(filters)
     options=[(p['id'],f"{p['lga']} / {p['ward']} / {p['code']} — {p['name']}") for p in all_pus]
     puform=form('pu', '<label>LGA'+select('lga',[(x,x) for x in ('Apa','Agatu')])+'</label>'+''.join(field(*args) for args in [('ward','Ward'),('code','Official PU code'),('name','PU name'),('voters','Registered voters (total)','number'),('source','Figure source'),('source_date','Source date','date')]))
+    if not access.is_admin(): puform=''
+    manual_pu='<details><summary>Add a PU missing from the snapshot</summary>'+puform+'</details>' if access.is_admin() else ''
     agentform=form('agent',location_picker(all_pus)+field('name','Agent name')+field('phone','Phone','tel')+'<label>Assignment'+select('role',[(x,x) for x in ('Primary','Backup')])+'</label><label>Status'+select('status',[(x,x) for x in ('Pending','Confirmed','Trained')])+'</label><label><input type="checkbox" name="consent" value="yes" required> Agent agreed to storage of these details for this assignment</label>') if all_pus else '<p>Add a polling unit first.</p>'
     reportform=form('report',location_picker(all_pus)+'<label>Category'+select('category',[(x,x) for x in ('Logistics','Incident','Community concern')])+'</label><label>Report<textarea name="detail" required maxlength="2000"></textarea></label><p>Record operational facts. Do not include voter identities or political affiliations.</p>') if all_pus else '<p>Add a polling unit first.</p>'
     directoryform=form('pu',location_picker(all_pus)+''.join('<input type="hidden" name="'+key+'" value="">' for key in ('id','lga','ward','code','name'))+field('voters','Registered voter total','number')+field('source','Voter figure source')+field('source_date','Voter figure source date','date')) if all_pus else '<p>Add or import polling units first.</p>'
+    user=access.current_user.get()
+    identity=esc(user['username']+' · '+user['role']) if user else 'Local setup'
+    admin_links='<a href="#import">Import PUs</a><a href="#history">Activity log</a><a href="#accounts">Accounts</a>' if access.is_admin() else ''
+    import_section='<section id="import"><h2>Import polling units</h2>'+import_form()+'</section>' if access.is_admin() else ''
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
-    <aside>Local development · Administrator access · Use sample data until production deployment is ready.</aside>
-    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#import">Import PUs</a><a href="#archive">Archived agents</a><a href="#history">Activity log</a></nav><p role="status">{esc(message)}</p>
+    <aside>Signed in: {identity}<br>Local development · Use sample data until production deployment is ready.</aside>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
     {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Registered voters recorded<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
-    {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{directoryform}<details><summary>Add a PU missing from the snapshot</summary>{puform}</details>{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
+    {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{directoryform}{manual_pu}{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
-    <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section><section id="import"><h2>Import polling units</h2>{import_form()}</section>{history_panel()}'''
+    <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section>{import_section}{history_panel()}{account_panel()}'''
     return '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solution 2027</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182b35;font:16px system-ui}header{background:#0c3430;color:white;padding:40px max(5%,20px)}h1{font-size:40px;margin:8px 0}main{max-width:1200px;margin:auto;padding:20px}aside{background:#fff0c6;padding:16px;border-radius:10px}nav{display:flex;flex-wrap:wrap;gap:24px;padding:24px 0}a{color:#086052}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}article,section{background:white;border:1px solid #dce4e6;border-radius:12px;padding:24px}strong{display:block;font-size:30px;color:#096553}section{margin-top:24px}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}label{display:block;font-weight:600}input:not([type=checkbox]),select,textarea,button{width:100%;padding:12px;border:1px solid #bdcbce;border-radius:6px;margin-top:7px;font:inherit}button{background:#096553;color:white;cursor:pointer;align-self:end}details{padding:12px 0;border-bottom:1px solid #dce4e6}summary{cursor:pointer;font-weight:600;margin-bottom:12px}textarea{min-height:140px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8eb;vertical-align:top;overflow-wrap:anywhere}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}form p{font-size:14px}.location-picker{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.directory-status{grid-column:1/-1}input:focus,select:focus,textarea:focus{outline:3px solid #e7bd55}
     </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'<script src="/portal.js" defer></script></main></body></html>'
@@ -332,7 +394,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control','no-store')
         if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
         self.end_headers()
-    def do_GET(self):
+    def run_with_user(self,handler):
+        token,session=auth.get_session(self.headers.get('Cookie'))
+        with connect() as db: user=auth.session_user(db,session)
+        if session and session['authenticated'] and not user:
+            auth.revoke(token)
+            self.redirect('/login',''); return
+        context=access.current_user.set(user)
+        try: handler()
+        except PermissionError as error:
+            self.respond(403,'<!doctype html><title>Access denied</title><h1>Access denied</h1><p>'+esc(error)+'</p><a href="/">Return to portal</a>')
+        finally: access.current_user.reset(context)
+    def do_GET(self): self.run_with_user(self.handle_get)
+    def do_POST(self): self.run_with_user(self.handle_post)
+    def handle_get(self):
         url=urlsplit(self.path); path=url.path
         exports={f'/export/{kind}.csv':kind for kind in ('pus','agents','reports')}
         if path not in ('/','/login','/portal.js','/api/locations') and path not in exports: self.send_error(404); return
@@ -341,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/login': self.redirect('/'); return
             if path=='/api/locations':
                 with connect() as db:
-                    rows=[dict(r) for r in db.execute('SELECT id,lga,ward,code,name,voters,source,source_date FROM pus ORDER BY code')]
+                    rows=[dict(r) for r in db.execute('SELECT id,lga,ward,code,name,voters,source,source_date FROM pus ORDER BY code') if access.in_scope(r)]
                 self.respond(200,json.dumps(rows),content_type='application/json'); return
             if path=='/portal.js':
                 self.respond(200,(Path(__file__).parent/'portal.js').read_text(),content_type='text/javascript'); return
@@ -358,8 +433,8 @@ class Handler(BaseHTTPRequestHandler):
         cookie=None
         if not session: cookie,session=auth.new_session()
         self.respond(200,auth.login_page(session['csrf']),cookie)
-    def do_POST(self):
-        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent'): self.send_error(404); return
+    def handle_post(self):
+        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent','/user'): self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if not session or (self.path!='/login' and not session['authenticated']):
             self.redirect('/login'); return
@@ -371,14 +446,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=='/login':
                 if not auth.allow_attempt(self.client_address[0]):
                     self.respond(429,auth.login_page(session['csrf'],'Too many attempts. Try again in five minutes.')); return
-                with connect() as db: valid=auth.verify(db,data.get('username',''),data.get('password',''))
+                with connect() as db: valid=auth.authenticate(db,data.get('username',''),data.get('password',''))
                 if not valid:
                     self.respond(401,auth.login_page(session['csrf'],'Invalid username or password.')); return
                 auth.revoke(token)
-                new_token,_=auth.new_session(True)
+                new_token,_=auth.new_session(True,valid)
                 self.redirect('/',new_token); return
             if self.path=='/logout':
                 auth.revoke(token); self.redirect('/login',''); return
+            if self.path=='/user':
+                save_account(data)
+                self.redirect('/#accounts'); return
             if self.path=='/import-preview':
                 self.respond(200,import_preview(data.get('csv','')).replace(TOKEN,session['csrf'])); return
             if self.path=='/import-confirm':
@@ -407,7 +485,7 @@ if __name__=='__main__':
         print('Administrator saved. Restart the server if it is running.')
         raise SystemExit(0)
     with connect() as db:
-        if not db.execute('SELECT 1 FROM administrator').fetchone():
+        if not db.execute("SELECT 1 FROM users WHERE role='admin' AND active=1").fetchone():
             raise SystemExit('First run: python3 app.py --setup-admin')
     print('Development portal: http://127.0.0.1:8000 (Ctrl+C to stop)',flush=True)
     ThreadingHTTPServer(('127.0.0.1',8000),Handler).serve_forever()
