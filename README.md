@@ -33,7 +33,7 @@ Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It
 
 One administrator account is supported. Coordinator roles are deferred. The server binds only to localhost. Continue using sample data: production hosting, HTTPS, access roles, backup procedures and deployment review are still needed before real use. This is a development server, not a production deployment. Sessions and login throttles are held in memory for this single-process local server; restarting signs everyone out. The local HTTP cookie uses HttpOnly and SameSite=Strict. Production deployment must use HTTPS with Secure cookies.
 
-Next: coordinator roles, archive workflows, audit history and production database/backups.
+Next: coordinator roles and production database/backups.
 
 The portal does not store individual voter records, PVC/NIN details, or political-affiliation profiles. Operational reports should not include those details.
 
@@ -67,3 +67,12 @@ The bundled snapshot contains 11 Apa wards / 124 PUs and 10 Agatu wards / 112 PU
 Use **Find records** to filter by LGA, ward, PU/agent search or confirmed-agent coverage. Search matches PU name/code and agent name/phone; results include all assignments and reports belonging to matching PUs. Coverage includes Confirmed and Trained agents. Pending assignments do not count as confirmed coverage. Dashboard counts and CSV downloads follow the same filters. Clear filters to restore the full view.
 
 Authenticated administrators can download polling units, agent assignments or field reports as CSV. Unknown voter totals export as blank. Spreadsheet formula prefixes are escaped and phone numbers receive a leading apostrophe to retain leading zeros. Keep agent exports restricted to authorised coordinators. Creating/editing records remains available across the full directory even when the displayed records are filtered.
+
+
+## Archive and activity history
+
+Under **Edit records**, expand an active agent and confirm **Archive assignment**. This preserves the record while excluding it from active assignment lists, confirmed coverage and agent CSV exports. Use **Archived agents** to restore an assignment after confirming ongoing consent. Archived assignments must be restored before editing. Archive and activity sections show portal-wide records independently of location filters.
+
+The **Activity log** shows the latest 50 successful record creates, edits, PU imports, archives and restorations, with administrator name, record ID and UTC time. Edit entries list changed field names; they do not copy contact details or report contents. No-op edits and rejected actions do not create change entries. Changes and their log entries commit in the same database transaction. Historical edits made before this feature, direct SQL changes, directory seeding and login events are not logged. This local application log is not tamper-proof against someone who has database file access.
+
+Existing databases gain the archive column and activity table automatically on startup. Existing agents remain active. Keep a database backup before updates.

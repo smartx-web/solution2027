@@ -77,6 +77,19 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(self.request('/?lga=Invalid')[0],400)
         self.assertEqual(self.request('/?lga=Apa&ward=UGBOKPO')[0],200)
 
+    def test_archive_protected_and_confirmed(self):
+        self.assertEqual(self.request('/archive-agent',{'id':'1','confirmed':'yes'})[0],303)
+        self.login()
+        app.save('pu',dict(lga='Apa',ward='Sample',code='T-ARCHIVE',name='Sample',voters='20',source='Fixture',source_date='2026-10-19'))
+        app.save('agent',dict(pu_id='1',name='Archive Sample',phone='08000000000',role='Primary',status='Confirmed',consent='yes'))
+        _,_,body=self.request();csrf=self.csrf(body)
+        self.assertEqual(self.request('/archive-agent',{'csrf':'invalid','id':'1','confirmed':'yes'})[0],403)
+        self.assertEqual(self.request('/archive-agent',{'csrf':csrf,'id':'1'})[0],400)
+        self.assertEqual(self.request('/archive-agent',{'csrf':csrf,'id':'1','confirmed':'yes'})[:2],(303,'/#archive'))
+        self.assertEqual(app.filtered_records()[-1],0)
+        self.assertEqual(self.request('/restore-agent',{'csrf':csrf,'id':'1','confirmed':'yes'})[0],303)
+        self.assertEqual(app.filtered_records()[-1],1)
+
     def test_bad_password_throttle(self):
         _,_,body=self.request('/login'); csrf=self.csrf(body)
         for _ in range(5): self.assertEqual(self.request('/login',dict(csrf=csrf,username='admin',password='incorrect'))[0],401)

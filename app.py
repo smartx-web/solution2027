@@ -24,6 +24,10 @@ def init_db(seed_directory=False):
     with connect() as db:
         auth.init(db)
         db.executescript('''
+        CREATE TABLE IF NOT EXISTS activity_log (
+          id INTEGER PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,
+          entity TEXT NOT NULL,record_id INTEGER,summary TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS pus (
           id INTEGER PRIMARY KEY, lga TEXT NOT NULL CHECK(lga IN ('Apa','Agatu')),
           ward TEXT NOT NULL, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
@@ -37,6 +41,10 @@ def init_db(seed_directory=False):
           category TEXT NOT NULL CHECK(category IN ('Logistics','Incident','Community concern')),
           detail TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         ''')
+
+    with connect() as db:
+        if not any(r['name']=='archived_at' for r in db.execute('PRAGMA table_info(agents)')):
+            db.execute('ALTER TABLE agents ADD COLUMN archived_at TEXT')
 
     # Existing databases used NOT NULL, which cannot represent an unknown total.
     with connect() as db:
@@ -96,11 +104,32 @@ def parse_import(text):
     if not rows: raise ValueError('CSV contains no polling units.')
     return rows
 
+def log_activity(db,action,entity,record_id,summary):
+    admin=db.execute('SELECT username FROM administrator WHERE id=1').fetchone()
+    db.execute('INSERT INTO activity_log(actor,action,entity,record_id,summary) VALUES(?,?,?,?,?)',
+               (admin[0] if admin else 'Local setup',action,entity,record_id,summary))
+
+def set_agent_archived(data,archived):
+    if data.get('confirmed')!='yes': raise ValueError('Confirm the action first.')
+    record_id=int(required(data,'id'))
+    with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        agent=db.execute('SELECT archived_at FROM agents WHERE id=?',(record_id,)).fetchone()
+        if not agent: raise ValueError('Agent assignment does not exist.')
+        if bool(agent['archived_at'])==archived: raise ValueError('Agent assignment is already in that state.')
+        if archived:
+            db.execute('UPDATE agents SET archived_at=CURRENT_TIMESTAMP WHERE id=?',(record_id,))
+        else:
+            db.execute('UPDATE agents SET archived_at=NULL WHERE id=?',(record_id,))
+        log_activity(db,'Archived' if archived else 'Restored','agent',record_id,
+                     'Assignment removed from active coverage and exports.' if archived else 'Assignment returned to active coverage and exports.')
+
 def import_pus(text):
     rows=parse_import(text)
     with connect() as db:
         # A single transaction: a duplicate or invalid row rolls back the whole batch.
         db.executemany('INSERT INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,?,?,?)',rows)
+        log_activity(db,'Imported','pu',None,f'{len(rows)} polling units imported.')
     return len(rows)
 
 def save(kind, data):
@@ -108,6 +137,13 @@ def save(kind, data):
     editing=bool(data.get('id'))
     if editing and kind not in ('pu','agent'): raise ValueError('Unsupported edit.')
     with connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        before=None
+        if editing:
+            table_name={'pu':'pus','agent':'agents'}[kind]
+            before=db.execute(f'SELECT * FROM {table_name} WHERE id=?',(int(req('id')),)).fetchone()
+            if not before: raise ValueError('Record no longer exists.')
+            if kind=='agent' and before['archived_at']: raise ValueError('Restore the archived assignment before editing it.')
         if kind in ('agent','report') and ('location_lga' in data or 'location_ward' in data):
             location=db.execute('SELECT lga,ward FROM pus WHERE id=?',(int(req('pu_id')),)).fetchone()
             if not location or location['lga']!=req('location_lga') or location['ward']!=req('location_ward'):
@@ -131,6 +167,13 @@ def save(kind, data):
             cursor=db.execute('INSERT INTO reports(pu_id,category,detail) VALUES(?,?,?)',(int(req('pu_id')),req('category'),req('detail',2000)))
         else: raise ValueError('Unknown action.')
         if editing and cursor.rowcount!=1: raise ValueError('Record no longer exists.')
+        record_id=int(req('id')) if editing else cursor.lastrowid
+        if editing:
+            columns=PU_COLUMNS if kind=='pu' else ('pu_id','name','phone','role','status')
+            after=db.execute(f'SELECT * FROM {table_name} WHERE id=?',(record_id,)).fetchone()
+            changed=[key for key in columns if before[key]!=after[key]]
+            if changed: log_activity(db,'Updated',kind,record_id,'Changed fields: '+', '.join(changed))
+        else: log_activity(db,'Created',kind,record_id,'New record saved.')
 
 def esc(value): return html.escape(str(value), quote=True)
 def select(name, values, selected=None):
@@ -138,7 +181,7 @@ def select(name, values, selected=None):
 def field(name,label,typ='text',value=''):
     return f'<label>{label}<input name="{name}" type="{typ}" value="{esc(value)}" required maxlength="500"'+(' min="0" step="1"' if typ=='number' else '')+'></label>'
 def form(kind,content):
-    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report'}[kind]
+    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report','archive-agent':'Archive assignment','restore-agent':'Restore assignment'}[kind]
     return f'<form method="post" action="/{kind}"><input type="hidden" name="csrf" value="{TOKEN}">{content}<button>{button}</button></form>'
 def table(headers,rows):
     return '<div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(h)}</th>' for h in headers)+'</tr></thead><tbody>'+(''.join('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in row)+'</tr>' for row in rows) or f'<tr><td colspan="{len(headers)}">No records yet.</td></tr>')+'</tbody></table></div>'
@@ -167,7 +210,7 @@ def edit_forms(pus,agents,options,all_pus):
         for key,label,values in [('role','Assignment',('Primary','Backup')),('status','Status',('Pending','Confirmed','Trained'))]:
             fields+='<label>'+label+select(key,[(x,x) for x in values],agent[key])+'</label>'
         fields+='<label><input type="checkbox" name="consent" value="yes" required checked> Agent consent remains valid for these details</label>'
-        result+='<details><summary>'+esc(agent['name'])+' · '+esc(agent['code'])+'</summary>'+form('agent',fields)+'</details>'
+        result+='<details><summary>'+esc(agent['name'])+' · '+esc(agent['code'])+'</summary>'+form('agent',fields)+form('archive-agent','<input type="hidden" name="id" value="'+str(agent['id'])+'"><label><input type="checkbox" name="confirmed" value="yes" required> Remove this assignment from active coverage and exports</label>')+'</details>'
     return result
 
 def import_form():
@@ -189,7 +232,7 @@ def filtered_records(filters=None):
     filters=filters or {}
     with connect() as db:
         all_pus=[dict(r) for r in db.execute('SELECT * FROM pus ORDER BY lga,ward,code')]
-        all_agents=[dict(r) for r in db.execute('SELECT a.*,p.code,p.lga,p.ward,p.name AS pu_name FROM agents a JOIN pus p ON p.id=a.pu_id ORDER BY a.id DESC')]
+        all_agents=[dict(r) for r in db.execute('SELECT a.*,p.code,p.lga,p.ward,p.name AS pu_name FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NULL ORDER BY a.id DESC')]
         all_reports=[dict(r) for r in db.execute('SELECT r.*,p.code,p.lga,p.ward,p.name AS pu_name FROM reports r JOIN pus p ON p.id=r.pu_id ORDER BY r.id DESC')]
     lga=filters.get('lga','').strip(); ward=filters.get('ward','').strip(); query=filters.get('q','').strip().casefold()
     coverage=filters.get('coverage','')
@@ -239,6 +282,19 @@ def export_csv(kind,filters=None):
     writer.writerow(headers);writer.writerows([[safe(v) for v in row] for row in rows])
     return '\ufeff'+stream.getvalue()
 
+def history_panel():
+    with connect() as db:
+        archived=db.execute('SELECT a.id,a.name,a.archived_at,p.code FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NOT NULL ORDER BY a.archived_at DESC,a.id DESC').fetchall()
+        history=db.execute('SELECT * FROM activity_log ORDER BY id DESC LIMIT 50').fetchall()
+    content='<section id="archive"><h2>Archived assignments</h2><p>Archived agents are excluded from active lists, coverage and exports. This list is independent of dashboard filters. Restore only if the agent still consents to the assignment.</p>'
+    if not archived: content+='<p>No archived assignments.</p>'
+    for agent in archived:
+        content+='<details><summary>'+esc(agent['name'])+' · '+esc(agent['code'])+' · '+esc(agent['archived_at'])+' UTC</summary>'
+        content+=form('restore-agent','<input type="hidden" name="id" value="'+str(agent['id'])+'"><label><input type="checkbox" name="confirmed" value="yes" required> Confirm this agent still consents and should return to active assignments</label>')+'</details>'
+    content+='</section><section id="history"><h2>Activity log</h2><p>Latest 50 recorded changes across the portal, newest first. Times are UTC. Logs record changed field names, without copying phone numbers or report text. Earlier changes made before this feature are not reconstructed.</p>'
+    content+=table(['Time (UTC)','Administrator','Action','Record','Details'],[(r['created_at'],r['actor'],r['action'],r['entity']+(' #'+str(r['record_id']) if r['record_id'] else ''),r['summary']) for r in history])
+    return content+'</section>'
+
 def page(message='',extra='',filters=None):
     filters=filters or {}
     all_pus,pus,agents,reports,covered=filtered_records(filters)
@@ -249,11 +305,11 @@ def page(message='',extra='',filters=None):
     directoryform=form('pu',location_picker(all_pus)+''.join('<input type="hidden" name="'+key+'" value="">' for key in ('id','lga','ward','code','name'))+field('voters','Registered voter total','number')+field('source','Voter figure source')+field('source_date','Voter figure source date','date')) if all_pus else '<p>Add or import polling units first.</p>'
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
     <aside>Local development · Administrator access · Use sample data until production deployment is ready.</aside>
-    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#import">Import PUs</a></nav><p role="status">{esc(message)}</p>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#import">Import PUs</a><a href="#archive">Archived agents</a><a href="#history">Activity log</a></nav><p role="status">{esc(message)}</p>
     {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Registered voters recorded<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
     {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{directoryform}<details><summary>Add a PU missing from the snapshot</summary>{puform}</details>{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
-    <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section><section id="import"><h2>Import polling units</h2>{import_form()}</section>'''
+    <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section><section id="import"><h2>Import polling units</h2>{import_form()}</section>{history_panel()}'''
     return '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solution 2027</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182b35;font:16px system-ui}header{background:#0c3430;color:white;padding:40px max(5%,20px)}h1{font-size:40px;margin:8px 0}main{max-width:1200px;margin:auto;padding:20px}aside{background:#fff0c6;padding:16px;border-radius:10px}nav{display:flex;flex-wrap:wrap;gap:24px;padding:24px 0}a{color:#086052}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}article,section{background:white;border:1px solid #dce4e6;border-radius:12px;padding:24px}strong{display:block;font-size:30px;color:#096553}section{margin-top:24px}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}label{display:block;font-weight:600}input:not([type=checkbox]),select,textarea,button{width:100%;padding:12px;border:1px solid #bdcbce;border-radius:6px;margin-top:7px;font:inherit}button{background:#096553;color:white;cursor:pointer;align-self:end}details{padding:12px 0;border-bottom:1px solid #dce4e6}summary{cursor:pointer;font-weight:600;margin-bottom:12px}textarea{min-height:140px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8eb;vertical-align:top;overflow-wrap:anywhere}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}form p{font-size:14px}.location-picker{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.directory-status{grid-column:1/-1}input:focus,select:focus,textarea:focus{outline:3px solid #e7bd55}
     </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'<script src="/portal.js" defer></script></main></body></html>'
@@ -303,7 +359,7 @@ class Handler(BaseHTTPRequestHandler):
         if not session: cookie,session=auth.new_session()
         self.respond(200,auth.login_page(session['csrf']),cookie)
     def do_POST(self):
-        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm'): self.send_error(404); return
+        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent'): self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if not session or (self.path!='/login' and not session['authenticated']):
             self.redirect('/login'); return
@@ -329,6 +385,9 @@ class Handler(BaseHTTPRequestHandler):
                 if data.get('confirmed')!='yes': raise ValueError('Confirm the import first.')
                 count=import_pus(data.get('csv',''))
                 self.respond(200,page(f'Imported {count} polling units.').replace(TOKEN,session['csrf'])); return
+            if self.path in ('/archive-agent','/restore-agent'):
+                set_agent_archived(data,self.path=='/archive-agent')
+                self.redirect('/#archive'); return
             save(self.path[1:],data)
         except (ValueError,sqlite3.IntegrityError,csv.Error) as error:
             self.respond(400,page('Could not save: '+str(error)).replace(TOKEN,session['csrf'])); return
