@@ -27,7 +27,7 @@ python3 -m unittest -v
 - Persist data in SQLite across restarts. User input is escaped and writes require a session-specific CSRF token.
 - Require administrator login before viewing or changing portal records. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per address.
 
-No official PU or voter figures are preloaded. Start with sample data. Dashboard totals cover entered records only; missing units do not count toward coverage.
+Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. Registered-voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
 
 ## Development boundary and next steps
 
@@ -51,4 +51,13 @@ lga,ward,code,name,voters,source,source_date
 
 Each row needs Apa or Agatu, a ward, a unique official PU code, a PU name, a nonnegative integer voter total, a source and an ISO date (`YYYY-MM-DD`). Keep codes as text so leading zeros survive. Quote CSV values containing commas.
 
-Preview validates all rows and shows the first 100 for review. Confirm to save. Imports accept at most 5,000 rows / 1 MB and never overwrite existing PU codes. A conflict or invalid row rejects the entire batch. Validation does not independently verify the figures: use an authoritative dataset and retain its source/date. No official voter data has been imported.
+Preview validates all rows and shows the first 100 for review. Confirm to save. Imports accept at most 5,000 rows / 1 MB and never overwrite existing PU codes. A conflict or invalid row rejects the entire batch. Validation does not independently verify the figures: use an authoritative dataset and retain its source/date. No registered-voter figures have been imported.
+
+
+## Linked location dropdowns
+
+As in the volunteer portal, choose **LGA → Ward → Polling unit**. Agent assignment, agent editing, field reporting and the voter-total form use the same directory. Changing a parent clears its dependent choices. Directory endpoints require login. No external service is needed for the dropdowns.
+
+Restart with `python3 app.py` after updating to load the directory. Existing PU codes, voter figures, agent assignments and reports are preserved. The database migrates unknown voter totals to NULL instead of treating them as zero. A known zero remains zero. Back up your SQLite database while the server is stopped before updating.
+
+The bundled snapshot contains 11 Apa wards / 124 PUs and 10 Agatu wards / 112 PUs. These are file counts, not a claim of current official completeness. Additional PUs can be added or imported. Source: user-provided `Nigeria_polling_units.csv`, extracted 2026-10-19; original publication date is unknown. No voter identities are included.

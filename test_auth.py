@@ -57,6 +57,18 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(self.request('/pu',dict(csrf=csrf,id='1',lga='Apa',ward='Sample',code='T2',name='Corrected',voters='150',source='Fixture',source_date='2026-10-18'))[0],303)
         self.assertIn('Corrected',self.request()[2])
 
+    def test_directory_requires_login(self):
+        self.assertEqual(self.request('/api/locations')[0],303)
+        self.assertEqual(self.request('/portal.js')[0],303)
+        self.login()
+        app.init_db(seed_directory=True)
+        import json
+        status,_,body=self.request('/api/locations')
+        self.assertEqual(status,200)
+        self.assertEqual(len(json.loads(body)),236)
+        self.assertIn('location-picker',self.request()[2])
+        self.assertEqual(self.request('/portal.js')[0],200)
+
     def test_bad_password_throttle(self):
         _,_,body=self.request('/login'); csrf=self.csrf(body)
         for _ in range(5): self.assertEqual(self.request('/login',dict(csrf=csrf,username='admin',password='incorrect'))[0],401)

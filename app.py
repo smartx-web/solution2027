@@ -2,6 +2,8 @@
 import html
 import csv
 import io
+import json
+from pathlib import Path
 import auth
 import os
 import secrets
@@ -18,14 +20,14 @@ def connect():
     db.execute('PRAGMA foreign_keys=ON')
     return db
 
-def init_db():
+def init_db(seed_directory=False):
     with connect() as db:
         auth.init(db)
         db.executescript('''
         CREATE TABLE IF NOT EXISTS pus (
           id INTEGER PRIMARY KEY, lga TEXT NOT NULL CHECK(lga IN ('Apa','Agatu')),
           ward TEXT NOT NULL, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
-          voters INTEGER NOT NULL CHECK(voters>=0), source TEXT NOT NULL, source_date TEXT NOT NULL);
+          voters INTEGER CHECK(voters>=0), source TEXT NOT NULL, source_date TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS agents (
           id INTEGER PRIMARY KEY, pu_id INTEGER NOT NULL REFERENCES pus(id),
           name TEXT NOT NULL, phone TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('Primary','Backup')),
@@ -35,6 +37,28 @@ def init_db():
           category TEXT NOT NULL CHECK(category IN ('Logistics','Incident','Community concern')),
           detail TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         ''')
+
+    # Existing databases used NOT NULL, which cannot represent an unknown total.
+    with connect() as db:
+        columns=db.execute('PRAGMA table_info(pus)').fetchall()
+        if any(c['name']=='voters' and c['notnull'] for c in columns):
+            db.execute('PRAGMA foreign_keys=OFF')
+            try:
+                db.execute('BEGIN IMMEDIATE')
+                db.execute("CREATE TABLE pus_new(id INTEGER PRIMARY KEY,lga TEXT NOT NULL CHECK(lga IN ('Apa','Agatu')),ward TEXT NOT NULL,code TEXT NOT NULL UNIQUE,name TEXT NOT NULL,voters INTEGER CHECK(voters>=0),source TEXT NOT NULL,source_date TEXT NOT NULL)")
+                db.execute('INSERT INTO pus_new SELECT * FROM pus')
+                db.execute('DROP TABLE pus')
+                db.execute('ALTER TABLE pus_new RENAME TO pus')
+                if db.execute('PRAGMA foreign_key_check').fetchone(): raise ValueError('Database links failed validation.')
+                db.commit()
+            except Exception:
+                db.rollback(); raise
+            finally: db.execute('PRAGMA foreign_keys=ON')
+        if seed_directory:
+            rows=json.loads((Path(__file__).parent/'data'/'apa_agatu_directory.json').read_text())
+            db.executemany('INSERT OR IGNORE INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,NULL,?,?)',
+                           [(r['lga'],r['ward'],r['code'],r['name'],'User-supplied Nigeria polling-unit directory snapshot','') for r in rows])
+
 
 PU_COLUMNS = ('lga','ward','code','name','voters','source','source_date')
 
@@ -84,6 +108,10 @@ def save(kind, data):
     editing=bool(data.get('id'))
     if editing and kind not in ('pu','agent'): raise ValueError('Unsupported edit.')
     with connect() as db:
+        if kind in ('agent','report') and ('location_lga' in data or 'location_ward' in data):
+            location=db.execute('SELECT lga,ward FROM pus WHERE id=?',(int(req('pu_id')),)).fetchone()
+            if not location or location['lga']!=req('location_lga') or location['ward']!=req('location_ward'):
+                raise ValueError('Polling unit does not belong to the selected LGA and ward.')
         if kind=='pu':
             values=pu_values(data)
             if editing:
@@ -114,18 +142,27 @@ def form(kind,content):
     return f'<form method="post" action="/{kind}"><input type="hidden" name="csrf" value="{TOKEN}">{content}<button>{button}</button></form>'
 def table(headers,rows):
     return '<div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(h)}</th>' for h in headers)+'</tr></thead><tbody>'+(''.join('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in row)+'</tr>' for row in rows) or f'<tr><td colspan="{len(headers)}">No records yet.</td></tr>')+'</tbody></table></div>'
+def location_picker(pus,selected=None):
+    current=next((p for p in pus if str(p['id'])==str(selected)),None)
+    lga=current['lga'] if current else ''
+    ward=current['ward'] if current else ''
+    lgas=[('', 'Select an LGA')]+[(v,v) for v in sorted({p['lga'] for p in pus})]
+    wards=[('', 'Choose LGA first')]+[(v,v) for v in sorted({p['ward'] for p in pus if p['lga']==lga})]
+    units=[('', 'Choose ward first')]+[(p['id'],p['code']+' — '+p['name']) for p in pus if p['lga']==lga and p['ward']==ward]
+    return '<div class="location-picker"><label>Local Government Area'+select('location_lga',lgas,lga)+'</label><label>Ward'+select('location_ward',wards,ward)+'</label><label>Polling unit'+select('pu_id',units,selected)+'</label><p class="directory-status" role="status">Choose LGA, then ward, then polling unit.</p></div>'
+
 def edit_forms(pus,agents,options):
     result='<h3>Edit polling units</h3>'
     for pu in pus:
         fields='<input type="hidden" name="id" value="'+str(pu['id'])+'">'
         fields+='<label>LGA'+select('lga',[(x,x) for x in ('Apa','Agatu')],pu['lga'])+'</label>'
         for key,label,typ in [('ward','Ward','text'),('code','Official PU code','text'),('name','PU name','text'),('voters','Registered voters','number'),('source','Figure source','text'),('source_date','Source date','date')]:
-            fields+=field(key,label,typ,pu[key])
+            fields+=field(key,label,typ,'' if pu[key] is None else pu[key])
         result+='<details><summary>'+esc(pu['code'])+' · '+esc(pu['name'])+'</summary>'+form('pu',fields)+'</details>'
     result+='<h3>Edit agent assignments</h3>'
     for agent in agents:
         fields='<input type="hidden" name="id" value="'+str(agent['id'])+'">'
-        fields+='<label>Polling unit'+select('pu_id',options,agent['pu_id'])+'</label>'
+        fields+=location_picker(pus,agent['pu_id'])
         fields+=field('name','Agent name',value=agent['name'])+field('phone','Phone','tel',agent['phone'])
         for key,label,values in [('role','Assignment',('Primary','Backup')),('status','Status',('Pending','Confirmed','Trained'))]:
             fields+='<label>'+label+select(key,[(x,x) for x in values],agent[key])+'</label>'
@@ -156,28 +193,29 @@ def page(message='',extra=''):
         covered=db.execute("SELECT COUNT(DISTINCT pu_id) FROM agents WHERE status IN ('Confirmed','Trained')").fetchone()[0]
     options=[(p['id'],f"{p['lga']} / {p['ward']} / {p['code']} — {p['name']}") for p in pus]
     puform=form('pu', '<label>LGA'+select('lga',[(x,x) for x in ('Apa','Agatu')])+'</label>'+''.join(field(*args) for args in [('ward','Ward'),('code','Official PU code'),('name','PU name'),('voters','Registered voters (total)','number'),('source','Figure source'),('source_date','Source date','date')]))
-    agentform=form('agent','<label>Polling unit'+select('pu_id',options)+'</label>'+field('name','Agent name')+field('phone','Phone','tel')+'<label>Assignment'+select('role',[(x,x) for x in ('Primary','Backup')])+'</label><label>Status'+select('status',[(x,x) for x in ('Pending','Confirmed','Trained')])+'</label><label><input type="checkbox" name="consent" value="yes" required> Agent agreed to storage of these details for this assignment</label>') if pus else '<p>Add a polling unit first.</p>'
-    reportform=form('report','<label>Polling unit'+select('pu_id',options)+'</label><label>Category'+select('category',[(x,x) for x in ('Logistics','Incident','Community concern')])+'</label><label>Report<textarea name="detail" required maxlength="2000"></textarea></label><p>Record operational facts. Do not include voter identities or political affiliations.</p>') if pus else '<p>Add a polling unit first.</p>'
+    agentform=form('agent',location_picker(pus)+field('name','Agent name')+field('phone','Phone','tel')+'<label>Assignment'+select('role',[(x,x) for x in ('Primary','Backup')])+'</label><label>Status'+select('status',[(x,x) for x in ('Pending','Confirmed','Trained')])+'</label><label><input type="checkbox" name="consent" value="yes" required> Agent agreed to storage of these details for this assignment</label>') if pus else '<p>Add a polling unit first.</p>'
+    reportform=form('report',location_picker(pus)+'<label>Category'+select('category',[(x,x) for x in ('Logistics','Incident','Community concern')])+'</label><label>Report<textarea name="detail" required maxlength="2000"></textarea></label><p>Record operational facts. Do not include voter identities or political affiliations.</p>') if pus else '<p>Add a polling unit first.</p>'
+    directoryform=form('pu',location_picker(pus)+''.join('<input type="hidden" name="'+key+'" value="">' for key in ('id','lga','ward','code','name'))+field('voters','Registered voter total','number')+field('source','Voter figure source')+field('source_date','Voter figure source date','date')) if pus else '<p>Add or import polling units first.</p>'
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
     <aside>Local development · Administrator access · Use sample data until production deployment is ready.</aside>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#import">Import PUs</a></nav><p role="status">{esc(message)}</p>
-    <div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] for p in pus):,}</strong>Registered voters recorded</article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
-    {extra}<section id="pus"><h2>Polling units</h2><p>Totals cover entered PUs only. Enter sourced figures; no official dataset is preloaded.</p>{puform}{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],p['voters'],p['source'],p['source_date']) for p in pus])}</section>
+    <div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Registered voters recorded<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
+    {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{directoryform}<details><summary>Add a PU missing from the snapshot</summary>{puform}</details>{table(['LGA','Ward','Code','PU','Voters','Source','Date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
     <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options)}</section><section id="import"><h2>Import polling units</h2>{import_form()}</section>'''
     return '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solution 2027</title><style>
-    *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182b35;font:16px system-ui}header{background:#0c3430;color:white;padding:40px max(5%,20px)}h1{font-size:40px;margin:8px 0}main{max-width:1200px;margin:auto;padding:20px}aside{background:#fff0c6;padding:16px;border-radius:10px}nav{display:flex;flex-wrap:wrap;gap:24px;padding:24px 0}a{color:#086052}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}article,section{background:white;border:1px solid #dce4e6;border-radius:12px;padding:24px}strong{display:block;font-size:30px;color:#096553}section{margin-top:24px}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}label{display:block;font-weight:600}input:not([type=checkbox]),select,textarea,button{width:100%;padding:12px;border:1px solid #bdcbce;border-radius:6px;margin-top:7px;font:inherit}button{background:#096553;color:white;cursor:pointer;align-self:end}details{padding:12px 0;border-bottom:1px solid #dce4e6}summary{cursor:pointer;font-weight:600;margin-bottom:12px}textarea{min-height:140px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8eb;vertical-align:top;overflow-wrap:anywhere}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}form p{font-size:14px}input:focus,select:focus,textarea:focus{outline:3px solid #e7bd55}
-    </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'</main></body></html>'
+    *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182b35;font:16px system-ui}header{background:#0c3430;color:white;padding:40px max(5%,20px)}h1{font-size:40px;margin:8px 0}main{max-width:1200px;margin:auto;padding:20px}aside{background:#fff0c6;padding:16px;border-radius:10px}nav{display:flex;flex-wrap:wrap;gap:24px;padding:24px 0}a{color:#086052}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}article,section{background:white;border:1px solid #dce4e6;border-radius:12px;padding:24px}strong{display:block;font-size:30px;color:#096553}section{margin-top:24px}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}label{display:block;font-weight:600}input:not([type=checkbox]),select,textarea,button{width:100%;padding:12px;border:1px solid #bdcbce;border-radius:6px;margin-top:7px;font:inherit}button{background:#096553;color:white;cursor:pointer;align-self:end}details{padding:12px 0;border-bottom:1px solid #dce4e6}summary{cursor:pointer;font-weight:600;margin-bottom:12px}textarea{min-height:140px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8eb;vertical-align:top;overflow-wrap:anywhere}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}form p{font-size:14px}.location-picker{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.directory-status{grid-column:1/-1}input:focus,select:focus,textarea:focus{outline:3px solid #e7bd55}
+    </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'<script src="/portal.js" defer></script></main></body></html>'
 
 class Handler(BaseHTTPRequestHandler):
-    def respond(self,status,document,cookie=None):
+    def respond(self,status,document,cookie=None,content_type='text/html; charset=utf-8'):
         payload=document.encode()
         self.send_response(status)
-        self.send_header('Content-Type','text/html; charset=utf-8')
+        self.send_header('Content-Type',content_type)
         self.send_header('Content-Length',str(len(payload)))
         self.send_header('Cache-Control','no-store')
         self.send_header('X-Content-Type-Options','nosniff')
-        self.send_header('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
         if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
         self.end_headers(); self.wfile.write(payload)
     def redirect(self,path,cookie=None):
@@ -187,12 +225,18 @@ class Handler(BaseHTTPRequestHandler):
         if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
         self.end_headers()
     def do_GET(self):
-        if self.path not in ('/','/login'): self.send_error(404); return
+        if self.path not in ('/','/login','/portal.js','/api/locations'): self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if session and session['authenticated']:
             if self.path=='/login': self.redirect('/'); return
+            if self.path=='/api/locations':
+                with connect() as db:
+                    rows=[dict(r) for r in db.execute('SELECT id,lga,ward,code,name,voters,source,source_date FROM pus ORDER BY code')]
+                self.respond(200,json.dumps(rows),content_type='application/json'); return
+            if self.path=='/portal.js':
+                self.respond(200,(Path(__file__).parent/'portal.js').read_text(),content_type='text/javascript'); return
             self.respond(200,page().replace(TOKEN,session['csrf'])); return
-        if self.path=='/': self.redirect('/login'); return
+        if self.path!='/login': self.redirect('/login'); return
         cookie=None
         if not session: cookie,session=auth.new_session()
         self.respond(200,auth.login_page(session['csrf']),cookie)
@@ -230,7 +274,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__=='__main__':
     import sys
-    init_db()
+    init_db(seed_directory=True)
     if '--setup-admin' in sys.argv:
         from getpass import getpass
         try:

@@ -1,0 +1,1418 @@
+[
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/001",
+    "name": "AILA PRI. SCH. AILA"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/002",
+    "name": "AILA MKT SQ. I, AILA CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/003",
+    "name": "AILA MKT SQ. II, AILA CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/004",
+    "name": "EGBA PLAY GROUND, EGBA CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/005",
+    "name": "EGBA PRI. SCH., EGBA EAST"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/006",
+    "name": "EDEJE PRI.SCH. EDEJE VILLAGE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/007",
+    "name": "OMIKWIDI PRI. SCH., OMIKWIDI"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/008",
+    "name": "ADAGBO MKT. SQ. ADAGBO"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/009",
+    "name": "ABUGBE PRIM SCH - ABUGBE SOUTH"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/010",
+    "name": "ABUGBE PLAY GROUND - ABUGBE CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/011",
+    "name": "INMINYI, PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/012",
+    "name": "ADANA, PRI. SCH., ADANA TOWN"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/013",
+    "name": "OLEGEJE, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/014",
+    "name": "AILA PRIMARY SCHOOL II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/015",
+    "name": "AILA MARKET SQUARE I - ETUGEHA CENTER"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "EGBA",
+    "code": "07/02/01/016",
+    "name": "ADAGBO PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/001",
+    "name": "ENUNGBA, PRI. SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/002",
+    "name": "ENUNGBA, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/003",
+    "name": "OGBANGEDE, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/004",
+    "name": "ENICHA PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/005",
+    "name": "ENGILA, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/006",
+    "name": "ELLO, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/007",
+    "name": "ICHOGOLOGWU, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/008",
+    "name": "ENUNGBA PLAYGROUND II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/009",
+    "name": "OGBANGEDE PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ENUNGBA",
+    "code": "07/02/02/010",
+    "name": "ICHOGOLUGWU PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/001",
+    "name": "OBAGAJI OLD MKT 1 - HAUSA QTRS."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/002",
+    "name": "OBAGAJI OLD MKT II, - OLD MKT."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/003",
+    "name": "OBAGAJI, PRI. SCHOOL 1"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/004",
+    "name": "OBAGAJI, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/005",
+    "name": "OBAGAJI, NEW MKT. 1"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/006",
+    "name": "OLECHOLOGBA PRI SCHOOL I"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/007",
+    "name": "OLAGBA PRI. SCH. GISHU"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/008",
+    "name": "OBISHU, PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/009",
+    "name": "INOLI-OLEGBECHONO, PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/010",
+    "name": "OLEGOCHEPO PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/011",
+    "name": "OLOCHOLOGBA PRI SCHOOLII"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/012",
+    "name": "OBAGAJI NEW MKT II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/013",
+    "name": "OBAGAJI OLD MARKET II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/014",
+    "name": "OBAGAJI OLD MKT SQAURE III"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/015",
+    "name": "ABATA OPEN SPACE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/016",
+    "name": "OPEN SPACE ONGBABO UJI"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/017",
+    "name": "OTUKPO ROAD OPEN SPACE PRIMARY SCHOOL - OBAGAJI"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/018",
+    "name": "OBAGAJI NEW MARKET SQUARE 1 - ONCHALE OHEBUTELE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/019",
+    "name": "OLE-GOGA OPEN SPACE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OBAGAJI",
+    "code": "07/02/03/020",
+    "name": "NEW MARKET SQUARE II - OBAGAJI OBALI CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/001",
+    "name": "ODUGBEHO PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/002",
+    "name": "ODUGBEHO MKT. SQ."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/003",
+    "name": "UGBOJU PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/004",
+    "name": "ODEJO PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/005",
+    "name": "ODUGBEHO PRIMARY SCHOOL - OLEGOBIDU"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "ODUGBEHO",
+    "code": "07/02/04/006",
+    "name": "ODUGBEHO MARKET SQUARE - SABON GARI"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGBAULU",
+    "code": "07/02/05/001",
+    "name": "OGBAULU PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGBAULU",
+    "code": "07/02/05/002",
+    "name": "OGBAULU PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGBAULU",
+    "code": "07/02/05/003",
+    "name": "OGBALU MARKET SQUARE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGBAULU",
+    "code": "07/02/05/004",
+    "name": "OLEGA BULU PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGBAULU",
+    "code": "07/02/05/005",
+    "name": "OKPEGWA PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/001",
+    "name": "OGWULE-KADUNA PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/002",
+    "name": "OGWULE-KADUNA PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/003",
+    "name": "OGWULE-UGBOKPO PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/004",
+    "name": "OKPANCHENYI PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/005",
+    "name": "AKELE PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/006",
+    "name": "EKWO/OKADU (EKWO PLAY GROUND)"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/007",
+    "name": "OGWULE KADUNA, PRIMARY HEALTH CARE CENTRE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/008",
+    "name": "OLEGENTONU PLAYGROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/009",
+    "name": "OKPANCHENYI PLAYGROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE-KADUNA",
+    "code": "07/02/06/010",
+    "name": "OKADU MARKET SQUARE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/001",
+    "name": "OGWULE-OGBAULU PRI. SCH. 1"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/002",
+    "name": "OGWULE-OGBAULU PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/003",
+    "name": "OGWULE-ANKPA PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/004",
+    "name": "OKPAGABI PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/005",
+    "name": "IBADO PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/006",
+    "name": "EGWUMA PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/007",
+    "name": "AJOMACHI PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/008",
+    "name": "OLEGAGBANE PRI. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/009",
+    "name": "OKWU TANOBE MKT. SQ."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/010",
+    "name": "OGBEIGOBA/JERUSALEM (AT OGBEIGOBA P/G"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/011",
+    "name": "OGWULE-OGAULU PRI. SCH. II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/012",
+    "name": "EGWUMA PLAYGROUND OPEN SPACE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OGWULE OGBAULU",
+    "code": "07/02/07/013",
+    "name": "OGWULE OGBAULU PRIMARY SCHOOL II OPEN SPACE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/001",
+    "name": "OKOKOLO PRI. SCH. I"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/002",
+    "name": "OKOKOLO PRI. SCH. II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/003",
+    "name": "OKOKOLO MARKET SQUARE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/004",
+    "name": "AKWU PRIMARY SCHOOL (AKWU WEST)"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/005",
+    "name": "AKWU PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/006",
+    "name": "AKPEKE PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/007",
+    "name": "OCHOLONYA PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OKOKOLO",
+    "code": "07/02/08/008",
+    "name": "BANZU OPEN SPACE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/001",
+    "name": "OSHIGBUDU PRIM. SCH. I"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/002",
+    "name": "OSHIGBUDU PRIM. SCH. II"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/003",
+    "name": "AYELE PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/004",
+    "name": "ENOGAJI PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/005",
+    "name": "ATAKPA PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/006",
+    "name": "IGOJE PRIMARY SCHOOL CENTER"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "OSHIGBUDU",
+    "code": "07/02/09/007",
+    "name": "ATAKPA PRIMARY SCHOOL II ATAKPA"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/001",
+    "name": "USHA PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/002",
+    "name": "USHA PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/003",
+    "name": "USHA MKT. SQ."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/004",
+    "name": "OGWUMOGBO PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/005",
+    "name": "IKPELE PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/006",
+    "name": "OGWUFA PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/007",
+    "name": "OWETO PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/008",
+    "name": "UTUGOLUGWU PRI. SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/009",
+    "name": "EBETE PRIM. SCH."
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/010",
+    "name": "IGA-GISHU PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/011",
+    "name": "OGAM PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/012",
+    "name": "WARRI PLAY GROUND"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/013",
+    "name": "OLEGI-NAIGWU PLAYGROUND - USHA"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/014",
+    "name": "EJUMA PRIMARY SCHOOL EJUMA - GECHE"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/015",
+    "name": "IKPELE GOCHI PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/016",
+    "name": "OCHELEFU PLAYGROUND OWETO"
+  },
+  {
+    "lga": "Agatu",
+    "ward": "USHA",
+    "code": "07/02/10/017",
+    "name": "WARRI PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/001",
+    "name": "OJANTELLE, MARKET SQUARE I"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/002",
+    "name": "OJANTELLE, MARKET SQUARE II"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/003",
+    "name": "OJANTELLE, METHO. PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/004",
+    "name": "AKPETE MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/005",
+    "name": "JOS/AKPETE OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/006",
+    "name": "ASABA PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/007",
+    "name": "OMELEMU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/008",
+    "name": "ATAGANYI PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/009",
+    "name": "ATAGANYI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AKPETE/OJANTELLE",
+    "code": "07/03/01/010",
+    "name": "OJANTALLE NEW MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/001",
+    "name": "AUKE-IGERI PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/002",
+    "name": "AUKE-IBADO PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/003",
+    "name": "OGEDE - OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/004",
+    "name": "AKPOLOKO/OLOCHEKWU OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/005",
+    "name": "OLOCHEKWU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/006",
+    "name": "LGEA PRI. SCHOOL, AIJA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "AUKE",
+    "code": "07/03/02/007",
+    "name": "AUKE- IBADO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/001",
+    "name": "UKPOGO PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/002",
+    "name": "UKPOGO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/003",
+    "name": "IKAMPU II OLOCHOKWUNU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/004",
+    "name": "OJECHO PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/005",
+    "name": "EDIKWU ICHO PRIM. SCH."
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/006",
+    "name": "OKWIJI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/007",
+    "name": "OLADOGA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/008",
+    "name": "EDIKWU-ICHO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/009",
+    "name": "IJAHA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/010",
+    "name": "LGEA PRI. SCH. EDIKWU-OLIJAMU"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU I",
+    "code": "07/03/03/011",
+    "name": "LGEA PRI. SCHOOL ANGWA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/001",
+    "name": "ODUGBO PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/002",
+    "name": "ODUGBO PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/003",
+    "name": "OBINDA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/004",
+    "name": "OPAHA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/005",
+    "name": "ANKPALI PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/006",
+    "name": "ANKPALI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/007",
+    "name": "OLEKELE PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/008",
+    "name": "EBUGODO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/009",
+    "name": "ODUGBO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "EDIKWU II",
+    "code": "07/03/04/010",
+    "name": "OPPOSITE PRY HEALTH CENTRE, OPAHA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/001",
+    "name": "IGAH-OKPAYA MKT. SQR. I"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/002",
+    "name": "IGAH-OKPAYA MKT. SQR. II"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/003",
+    "name": "IGAH-OKPAYA MOTOR PARK"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/004",
+    "name": "IGAH METH. PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/005",
+    "name": "IGAH-ACHEMA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/006",
+    "name": "OCHEKELE PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/007",
+    "name": "L.G.E.A. PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/008",
+    "name": "OKPOKWU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/009",
+    "name": "IGAH-OLOGBECHE PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/010",
+    "name": "IGAH-OKPAYA PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/011",
+    "name": "TOWN HALL IGAH-OKPAYA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGAH-OKPAYA",
+    "code": "07/03/05/012",
+    "name": "IGAH-OKAPAYA COMP. HEALTH CENTRE."
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/001",
+    "name": "OCHICHI MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/002",
+    "name": "OCHICHI AJI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/003",
+    "name": "IMANA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/004",
+    "name": "IJEGE PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/005",
+    "name": "IKADUNA PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/006",
+    "name": "IGORO PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/007",
+    "name": "OLOJO-OTUGUGWU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/008",
+    "name": "ALAJA/OPANDA MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/009",
+    "name": "OKPAKACHI PRIMARY SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IGORO",
+    "code": "07/03/06/010",
+    "name": "LGEA PRIMARY SCHOOL OGBONOKO"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/001",
+    "name": "IKOBI CATH. PRIM. SCH."
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/002",
+    "name": "IKOBI PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/003",
+    "name": "OLUGWU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/004",
+    "name": "OLOKE PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/005",
+    "name": "IJAHA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/006",
+    "name": "UGBOBI PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/007",
+    "name": "IMANA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/008",
+    "name": "OLOGBA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/009",
+    "name": "OPE MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/010",
+    "name": "ENEMUNU PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/011",
+    "name": "OLEGONCHA OLEGEE OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "IKOBI",
+    "code": "07/03/07/012",
+    "name": "LGEA PRI. SCH., AKPANTA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/001",
+    "name": "ATAKPA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/002",
+    "name": "OKPENE PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/003",
+    "name": "AKPANIHO PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/004",
+    "name": "AJIBE-AHAJE PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/005",
+    "name": "OLADU PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/006",
+    "name": "EKLA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/007",
+    "name": "OBA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/008",
+    "name": "ALIFETI PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/009",
+    "name": "ALIFETI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OBA",
+    "code": "07/03/08/010",
+    "name": "OBA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/001",
+    "name": "OFOKE PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/002",
+    "name": "OFOKE MARKET SQUARE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/003",
+    "name": "OLE-AKOMONYE OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/004",
+    "name": "OLITODO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/005",
+    "name": "OGODO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/006",
+    "name": "OFEKE PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/007",
+    "name": "AMOKE PRIM SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/008",
+    "name": "OLUFIENE OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/009",
+    "name": "IKOR PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/010",
+    "name": "ST. JOHN SEC. SCHOOL, AMOKE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/011",
+    "name": "IKOR OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OFOKE",
+    "code": "07/03/09/012",
+    "name": "LGEA PRIMARY SCH. OLOJO-OKWOJIA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/001",
+    "name": "OIJI PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/002",
+    "name": "OIJI PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/003",
+    "name": "OIJI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/004",
+    "name": "IDADA PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/005",
+    "name": "IDADA PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/006",
+    "name": "IJOSI PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/007",
+    "name": "IJOSI OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/008",
+    "name": "ANGLICAN PRI. SCH., OIJI"
+  },
+  {
+    "lga": "Apa",
+    "ward": "OIJI",
+    "code": "07/03/10/009",
+    "name": "GRADE I AREA COURT, OIJI"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/001",
+    "name": "ROAD BLOCK"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/002",
+    "name": "UGBOKPO MKT. SQR. I"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/003",
+    "name": "UGBOKPO MKT. SQR. II"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/004",
+    "name": "UGBOKPO MOTOR PARK"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/005",
+    "name": "UGBOKPO PRIM. SCHOOL"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/006",
+    "name": "GSS UGBOKPO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/007",
+    "name": "ADIJA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/008",
+    "name": "R.C.M. OCHUMEKWU"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/009",
+    "name": "IJAHA PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/010",
+    "name": "BENIN/KANO PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/011",
+    "name": "KANO PLAY GROUND"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/012",
+    "name": "METHODIST HIGH SCH. UGBOKPO"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/013",
+    "name": "AGBOGO OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/014",
+    "name": "OGBEIGOBA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/015",
+    "name": "AKPULUKA OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/016",
+    "name": "OLOKWU OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/017",
+    "name": "GRACE OF GOD OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/018",
+    "name": "LOCAL GOVERNMENT SECRETARIAL OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/019",
+    "name": "LGEA QUARTERS OPEN SPACE"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/020",
+    "name": "RCM PRIMARY SCHOOL, ADIJA"
+  },
+  {
+    "lga": "Apa",
+    "ward": "UGBOKPO",
+    "code": "07/03/11/021",
+    "name": "OCHUMEKWU PLAY GROUND"
+  }
+]
