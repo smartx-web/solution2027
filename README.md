@@ -25,7 +25,7 @@ python3 -m unittest -v
 - Track confirmed PU coverage (Confirmed or Trained assignments), voter totals and agent assignments.
 - Add operational field reports for logistics, incidents and community concerns.
 - Persist data in SQLite across restarts. User input is escaped and writes require a session-specific CSRF token.
-- Require an enabled account before viewing portal records; permissions control changes. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per address.
+- Require an enabled account before viewing portal records; permissions control changes. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per account and 50 per five minutes per address.
 
 Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. The bundled 2023 historical baseline is loaded separately; other voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
 
@@ -114,3 +114,7 @@ The dashboard, PU table, location-selection messages and PU CSV export identify 
 Other manually entered voter totals and their sources/dates stay in `pus` and are shown separately. Startup does not overwrite them, reset known zeros, combine the two totals or change agent/report links. Subsequent changes to those sourced totals do not modify 2023 history. Repeated startups do not duplicate historical rows or import-log entries. A conflicting historical row stops startup for review rather than overwriting it. Baselines match exact PU codes; renamed codes must be reconciled deliberately.
 
 Update instructions: stop the server, back up the SQLite database, run `git pull origin main`, then `python3 app.py`. Baseline integration happens automatically during startup; do not paste the earlier review CSV into the directory-import form.
+
+## Hosting preparation
+
+Render configuration and a Waitress production entry point are included. See [DEPLOYMENT.md](DEPLOYMENT.md) for costs, initial administrator hash generation, persistent storage, hosted checks and backup/recovery instructions. Run `python3 app.py` for local development; Render runs `python3 deploy.py`. The deployment dependency is `requirements.txt`. This repository change does not create or publish a hosted service.

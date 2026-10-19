@@ -1,5 +1,6 @@
 """Account authentication and session management for the local development server."""
 import hashlib
+import os
 import json
 import hmac
 import secrets
@@ -114,18 +115,21 @@ def get_session(header):
 def revoke(token):
     with _lock: _sessions.pop(token,None)
 
-def allow_attempt(address):
+def allow_attempt(address,username=''):
+    # A shared hosting proxy must not make five logins lock out every account.
     with _lock:
         now=time.monotonic()
         for key in list(_attempts):
             if _attempts[key][1]<=now: del _attempts[key]
-        count,until=_attempts.get(address,(0,now+300))
-        if count>=5: return False
-        _attempts[address]=(count+1,until)
+        keys=[(('network',address),50),(('account',username),5)] if username else [(('legacy',address),5)]
+        if any(_attempts.get(key,(0,0))[0]>=limit for key,limit in keys):return False
+        for key,_ in keys:
+            count,until=_attempts.get(key,(0,now+300));_attempts[key]=(count+1,until)
         return True
 
+
 def cookie(token):
-    return f'solution_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_SECONDS if token else 0}'
+    return f'solution_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_SECONDS if token else 0}'+('; Secure' if os.environ.get('SOLUTION_ENV')=='production' else '')
 
 def login_page(csrf,message=''):
     import html

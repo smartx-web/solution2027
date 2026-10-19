@@ -17,7 +17,7 @@ DB = os.environ.get('SOLUTION_DB', 'solution2027.sqlite3')
 TOKEN = secrets.token_urlsafe(32)
 
 def connect():
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect(DB,timeout=30)
     db.row_factory = sqlite3.Row
     db.execute('PRAGMA foreign_keys=ON')
     return db
@@ -372,8 +372,9 @@ def page(message='',extra='',filters=None):
     identity=esc(user['username']+' · '+user['role']) if user else 'Local setup'
     admin_links='<a href="#import">Import PUs</a><a href="#history">Activity log</a><a href="#accounts">Accounts</a>' if access.is_admin() else ''
     import_section='<section id="import"><h2>Import polling units</h2>'+import_form()+'</section>' if access.is_admin() else ''
+    environment_label='Hosted portal · Account access required' if os.environ.get('SOLUTION_ENV')=='production' else 'Local development · Use sample data until production deployment is ready.'
     body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
-    <aside>Signed in: {identity}<br>Local development · Use sample data until production deployment is ready.</aside>
+    <aside>Signed in: {identity}<br>{environment_label}</aside>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
     {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Other sourced voter totals<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{baseline_total:,}</strong>2023 registered voters<br><small>Historical baseline · {baseline_count}/{len(pus)} PUs matched</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
     {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{baseline_note}{directoryform}{manual_pu}{table(['LGA','Ward','Code','PU','2023 registered voters (historical)','Other entered total','Other total source','Other total source date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters_2023'] is None else p['voters_2023']),('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
@@ -451,7 +452,7 @@ class Handler(BaseHTTPRequestHandler):
             data={k:v[0] for k,v in parse_qs(self.rfile.read(size).decode()).items()}
             if not secrets.compare_digest(data.get('csrf','').encode(),session['csrf'].encode()): self.send_error(403); return
             if self.path=='/login':
-                if not auth.allow_attempt(self.client_address[0]):
+                if not auth.allow_attempt(self.client_address[0],data.get('username','')):
                     self.respond(429,auth.login_page(session['csrf'],'Too many attempts. Try again in five minutes.')); return
                 with connect() as db: valid=auth.authenticate(db,data.get('username',''),data.get('password',''))
                 if not valid:
