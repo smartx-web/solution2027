@@ -1,85 +1,57 @@
-# Render deployment
+# Render Free with Neon PostgreSQL
 
-Prepared for one Python web service with login-gated portal access and a 1 GB persistent disk. The login screen and minimal health check are reachable online; this is application-level privacy, not a network-private Render service. No resources are created by committing these files.
+The portal runs as one Waitress process on Render; all records live in Neon, independently of Render restarts. Local development still supports SQLite. Login, account roles, ward permissions and historical totals are shared across both backends.
 
-## Cost and capacity
+## Database
 
-The Blueprint selects the smallest paid web compute plan that supports a disk (`0.5c-512mb`) and 1 GB storage. Review the price in Render before applying. Do not switch this SQLite setup to the free plan or remove its disk: runtime records would otherwise be lost after redeploys. No separate database service is provisioned.
+A dedicated Neon project `solution2027` has been created in Frankfurt (project `aged-king-13372174`, database `solution2027`). Other projects are untouched. Production contains the PU directory and historical baseline; no bootstrap credentials are committed. A separate `verify-postgres` branch is available for validation.
 
-Use one instance and one Python process. In-memory sessions and login throttles are shared between Waitress threads, not processes. Restarts sign users out. Disk-backed deployments briefly interrupt service. If you later need horizontal scaling, migrate to a managed database and shared session/rate-limit storage.
+In [Neon Console](https://console.neon.tech), select this project's production branch, database `solution2027`, role `solution_owner`, and Connect. Copy the pooled and direct connection URLs privately. Retain `sslmode=require` or `verify-full`. Never paste URLs into source files, public issues or chat.
 
-## Before deployment
+## First deployment
 
-1. Pull the latest `main` and back up your local database. A new hosted service starts with the PU directory, 2023 baseline and a new administrator; your local agents/accounts are not copied automatically.
-2. Install the hosting dependency in a virtual environment: `python3 -m pip install -r requirements.txt`.
-3. Generate your password hash locally:
-
-   ```bash
-   python3 manage.py hash-password
-   ```
-
-   Enter a password of 12 or more characters twice. Only the encoded hash prints. Save the actual password in your password manager; do not put it or the hash in GitHub or chat.
-4. Review `render.yaml`. If Render CLI v2.7+ is installed, run `render blueprints validate render.yaml`. The CLI was unavailable in the preparation environment; YAML parsing, validation against Render’s public JSON Schema, and application tests passed. Render's platform-aware validation must still pass in the Dashboard/CLI.
-
-## Create the service when ready
-
-Open https://dashboard.render.com/blueprint/new?repo=https://github.com/smartx-web/solution2027 and connect the GitHub repository if prompted. Review the plan, disk and estimated charges before applying.
-
-At the initial Blueprint prompts, set:
+1. Install dependencies locally: `pip install -r requirements.txt`.
+2. Generate a password hash: `python3 manage.py hash-password`. Save the password privately.
+3. Open [Render Blueprint setup](https://dashboard.render.com/blueprint/new?repo=https://github.com/smartx-web/solution2027).
+4. Review the free web plan and set these secret environment variables:
 
 | Variable | Value |
 | --- | --- |
-| `ADMIN_NAME` | Your chosen initial administrator username |
-| `ADMIN_PASSWORD_HASH` | Full output from `python3 manage.py hash-password` |
+| `DATABASE_URL` | Neon pooled connection URL |
+| `DATABASE_URL_UNPOOLED` | Matching direct connection URL, used for migrations |
+| `ADMIN_NAME` | Initial administrator username |
+| `ADMIN_PASSWORD_HASH` | Generated hash, including all dollar signs |
 
-Other settings are already declared:
+`SOLUTION_ENV=production` is supplied by the Blueprint. Render supplies `RENDER_EXTERNAL_URL`; for a custom domain set `APP_ORIGIN` to its canonical HTTPS URL. The app rejects mismatched hosts and cross-origin POSTs. No persistent disk is required. Automatic deployment is off.
 
-| Variable | Value |
-| --- | --- |
-| `SOLUTION_ENV` | `production` |
-| `SOLUTION_DB` | `/var/data/solution2027.sqlite3` |
-| `DATA_DIR` | `/var/data` |
-| `BACKUP_DIR` | `/var/data/backups` |
+Startup applies the versioned PostgreSQL schema, seeds the 236 PUs and 2023 baseline idempotently, and provisions an admin only when none exists. Existing account passwords are preserved. Remove the bootstrap hash from Render after successful first login. Keep a recovery credential securely.
 
-Render injects the HTTPS URL as `RENDER_EXTERNAL_URL`; the application uses it as the allowed origin/host. For a custom domain, set `APP_ORIGIN` to its exact HTTPS origin and redeploy. Do not include a path or trailing query. The application rejects unexpected hosts and cross-origin POST requests. The canonical public endpoint is HTTPS; the internal HTTP listener must stay behind Render's TLS edge. Secure cookies are enabled in production.
+Render and Neon can sleep when idle, so the first visit may be slower. Free quotas and availability are controlled by each provider; review usage in their dashboards. Sessions are in process memory, so Render restarts require another login. Keep one process/instance until shared session storage is implemented. Health checks report process readiness without waking Neon repeatedly.
 
-Apply the Blueprint only when ready to incur its charges. Builds install dependencies. Startup, not build/pre-deploy, backs up and migrates the disk database, loads the baseline and provisions the initial administrator if none exists. Later restarts do not reset users or passwords from bootstrap variables. After successful initial login, remove `ADMIN_PASSWORD_HASH` from the service environment and keep its local recovery process available; existing accounts keep working.
+## Existing SQLite records
 
-Automatic deploys are disabled. Trigger a manual deploy after reviewing future changes. Do not add another process or instance.
+The created production database already has directory/baseline records. The transfer command deliberately refuses any populated destination. To transfer an existing portal, use a separate empty Neon database/branch, test there, then point Render to that database. Never delete production records to make room.
 
-## Hosted checks before entering real agent data
+Stop writes and make a verified SQLite-native backup using the existing local `manage.py backup --output-dir /secure/path` command, with DATABASE_URL unset and SOLUTION_DB pointing to the original SQLite file. Upgrade the SQLite copy with the latest local application before transfer. Keep the original untouched.
 
-- `/healthz` responds `ok` and exposes no records.
-- Opening the portal while signed out redirects to login; direct API/export access is blocked.
-- The historical baseline shows 236 PUs and 131,035 voters when signed in as administrator.
-- Create viewer and coordinator test accounts. Confirm the viewer cannot save changes and the coordinator sees only the assigned area, including exports.
-- Save a clearly marked sample agent, restart the service, sign in again and verify it remains. Archive the sample after testing.
-- In the service shell, verify a readable backup exists under `/var/data/backups` and test it as described below. Keep production exports and database files restricted.
-
-## Backups and recovery
-
-SQLite-native backups run before startup migrations when a database exists, after startup and once every 24 hours while the process is running. The latest 14 backup copies are retained; frequent deployments shorten the time span covered. Files have owner-only permissions and are not exposed by any portal route. A backup failure before migrations stops startup. Scheduled backup failures are logged for the operator to investigate.
-
-Run a manual backup from the Render service shell:
+On a trusted machine, privately set DATABASE_URL and DATABASE_URL_UNPOOLED for the empty target:
 
 ```bash
-python3 manage.py backup --output-dir /var/data/backups
+python3 manage.py migrate-sqlite --source /secure/path/backup.sqlite3
+python3 manage.py migrate-sqlite --source /secure/path/backup.sqlite3 --apply
 ```
 
-A same-disk backup does not protect against deletion of the service/disk or account loss. Download regular copies to secure off-server storage using Render's documented SSH/SCP transfer flow. Off-server backup automation is not configured by this Blueprint.
+The first command validates and reports counts only. The second creates the schema and copies all tables in one transaction, preserving IDs, password hashes, roles, ward scopes, archival status, audit history and voter totals. It rejects a populated destination and checks row counts before commit. Repeated application is refused. After transfer, startup fills missing bundled directory/baseline entries without replacing manually sourced totals. Check totals and sign in using existing accounts before switching hosting. Keep the old portal read-only until the cutover is verified.
 
-To test a downloaded backup locally, leave the original unchanged:
+## Backups and verification
+
+SQLite backup scheduling does not apply to Neon. Arrange regular encrypted off-server PostgreSQL backups. On a trusted machine with a compatible PostgreSQL `pg_dump` client installed (version 17 or later for this server):
 
 ```bash
-python3 -c "import sqlite3; db=sqlite3.connect('downloaded-backup.sqlite3'); print(db.execute('PRAGMA quick_check').fetchone()[0]); print(db.execute('PRAGMA foreign_key_check').fetchall())"
+python3 manage.py dump-postgres --output /secure/path/solution2027.dump
+pg_restore --list /secure/path/solution2027.dump
 ```
 
-Expect `ok` and an empty foreign-key-error list. Then start a separate local copy of the portal with `SOLUTION_DB` pointing to that backup and check account access, baseline figures and sample records. Keep it off public networks.
+Use the direct URL in DATABASE_URL_UNPOOLED. The output is created exclusively with owner-only permissions. Test restoration into a separate database before relying on backups. Neon recovery windows are plan-dependent and do not replace off-server backups; no recurring backup job is provisioned here.
 
-For production recovery, stop the service, preserve the current database, verify the chosen backup and replace the database while the server is stopped. Restart and repeat the hosted checks. Do not overwrite a live database, and do not use raw filesystem snapshots as a substitute for tested SQLite-native backups. Recovery to an older copy loses later changes.
-
-If locked out, use the Render service shell with the configured `SOLUTION_DB` and run `python3 app.py --setup-admin`, then restart. This requires server-level access.
-
-## Existing local records
-
-No automatic transfer is performed. If you need existing local accounts and records online, create a SQLite-native backup, arrange a maintenance window and securely transfer it to the mounted disk before starting the hosted app. Do not upload databases to the public GitHub repository. Test migration on a separate copy first.
+After deployment check `/healthz`, login, secure cookies, dashboard totals (236 PUs and historical 131,035), ward-scoped access, agent creation/archival, CSV export and logout. Make a test change and verify it survives a Render restart. Check logs without sharing secrets.

@@ -9,6 +9,8 @@ from urllib.parse import urlsplit
 import app
 import auth
 import backups
+import database as db_backend
+import threading
 
 
 def settings():
@@ -16,6 +18,19 @@ def settings():
     parsed=urlsplit(origin)
     if parsed.scheme!='https' or not parsed.netloc or parsed.path not in ('','/') or parsed.query or parsed.fragment or parsed.username:
         raise ValueError('Set APP_ORIGIN to the canonical HTTPS portal URL.')
+    target=os.environ.get('DATABASE_URL','')
+    if target:
+        direct=os.environ.get('DATABASE_URL_UNPOOLED','')
+        pooled_parts=urlsplit(target);direct_parts=urlsplit(direct)
+        if not db_backend.is_postgres(target) or not db_backend.is_postgres(direct):
+            raise ValueError('Set both PostgreSQL connection URLs.')
+        from urllib.parse import parse_qs
+        for parts in (pooled_parts,direct_parts):
+            if parse_qs(parts.query).get('sslmode') not in (['require'],['verify-full']):
+                raise ValueError('Database connections must require TLS.')
+        if '-pooler' in (direct_parts.hostname or '') or (pooled_parts.hostname or '').replace('-pooler','')!=direct_parts.hostname or pooled_parts.path!=direct_parts.path or pooled_parts.username!=direct_parts.username:
+            raise ValueError('Use matching pooled and direct URLs for the same database.')
+        return origin.rstrip('/'),target,None
     database=Path(os.environ.get('SOLUTION_DB',''))
     root=Path(os.environ.get('DATA_DIR','/var/data')).resolve()
     if not database.is_absolute() or root not in database.resolve().parents:
@@ -80,9 +95,7 @@ def application(environ,start_response):
         return [body]
     # Health probes expose no records and do not depend on a public Host header.
     if path=='/healthz' and method=='GET':
-        try:
-            with app.connect() as db:db.execute('SELECT 1 FROM users LIMIT 1').fetchone()
-        except Exception:return finish(503,'unavailable')
+        # Process health only: database probes would prevent Neon sleeping.
         return finish(200,'ok')
     if not expected or environ.get('HTTP_HOST','').lower()!=expected:return finish(400,'Invalid host')
     if method not in ('GET','POST'):return finish(405,'Method not allowed',[('Allow','GET, POST')])
@@ -104,13 +117,18 @@ def main():
     if os.environ.get('SOLUTION_ENV')!='production':raise SystemExit('Set SOLUTION_ENV=production for deploy.py.')
     os.umask(0o077)
     origin,database,backup_dir=settings()
-    database.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     app.DB=str(database)
-    if database.is_file():backups.create_backup(database,backup_dir)
-    app.init_db(seed_directory=True)
-    bootstrap_admin()
-    backups.create_backup(database,backup_dir)
-    stop=backups.start_backup_loop(database,backup_dir)
+    stop=threading.Event()
+    if db_backend.is_postgres(app.DB):
+        app.init_db(seed_directory=True)
+        bootstrap_admin()
+    else:
+        database.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+        if database.is_file():backups.create_backup(database,backup_dir)
+        app.init_db(seed_directory=True)
+        bootstrap_admin()
+        backups.create_backup(database,backup_dir)
+        stop=backups.start_backup_loop(database,backup_dir)
     from waitress import serve
     try:
         # One process: sessions/throttling are shared across its worker threads.

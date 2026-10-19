@@ -20,12 +20,12 @@ def seed(db):
         raise ValueError('Invalid historical registered-voter count.')
     totals={prefix:sum(r['registered_voters'] for r in records if r['code'].startswith(prefix)) for prefix in ('07/02/','07/03/')}
     if totals!={'07/02/':64315,'07/03/':66720}: raise ValueError('Historical baseline failed total validation.')
-    added=0
+    existing={row['pu_code']:row for row in db.execute('SELECT pu_code,registered_voters,source_url FROM voter_baselines WHERE year=2023')}
+    pending=[]
     for row in records:
-        existing=db.execute('SELECT registered_voters,source_url FROM voter_baselines WHERE pu_code=? AND year=2023',(row['code'],)).fetchone()
-        if existing and (existing['registered_voters']!=row['registered_voters'] or existing['source_url']!=data['source_url']):
+        old=existing.get(row['code'])
+        if old and (old['registered_voters']!=row['registered_voters'] or old['source_url']!=data['source_url']):
             raise ValueError('Conflicting historical baseline; existing records have been preserved.')
-        cursor=db.execute('INSERT OR IGNORE INTO voter_baselines(pu_code,year,registered_voters,source_url,retrieved_on) VALUES(?,2023,?,?,?)',
-                          (row['code'],row['registered_voters'],data['source_url'],data['retrieved_on']))
-        added+=cursor.rowcount
-    return added
+        if not old:pending.append((row['code'],row['registered_voters'],data['source_url'],data['retrieved_on']))
+    if pending:db.executemany('INSERT INTO voter_baselines(pu_code,year,registered_voters,source_url,retrieved_on) VALUES(?,2023,?,?,?) ON CONFLICT(pu_code,year) DO NOTHING',pending)
+    return len(pending)

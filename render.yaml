@@ -2,25 +2,20 @@ services:
   - type: web
     name: solution2027
     runtime: python
-    plan: 0.5c-512mb
+    plan: free
+    region: frankfurt
     numInstances: 1
     buildCommand: pip install -r requirements.txt
     startCommand: python3 deploy.py
     healthCheckPath: /healthz
     autoDeployTrigger: "off"
-    disk:
-      name: solution2027-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: SOLUTION_ENV
         value: production
-      - key: SOLUTION_DB
-        value: /var/data/solution2027.sqlite3
-      - key: DATA_DIR
-        value: /var/data
-      - key: BACKUP_DIR
-        value: /var/data/backups
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
       - key: ADMIN_NAME
         sync: false
       - key: ADMIN_PASSWORD_HASH

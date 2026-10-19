@@ -28,7 +28,7 @@ def configure(db, username, password):
     if not username or len(username)>100: raise ValueError('Username must be 1–100 characters.')
     if len(password)<12 or len(password)>1024: raise ValueError('Use a password of 12–1024 characters.')
     salt=secrets.token_hex(16)
-    db.execute('INSERT OR REPLACE INTO administrator VALUES(1,?,?,?)',(username,salt,password_hash(password,salt)))
+    db.execute('INSERT INTO administrator(id,username,salt,password_hash) VALUES(1,?,?,?) ON CONFLICT(id) DO UPDATE SET username=excluded.username,salt=excluded.salt,password_hash=excluded.password_hash',(username,salt,password_hash(password,salt)))
     row=db.execute('SELECT id FROM users WHERE username=?',(username,)).fetchone()
     if row:
         db.execute("UPDATE users SET salt=?,password_hash=?,role='admin',lga='',wards='[]',active=1,version=version+1 WHERE id=?",(salt,password_hash(password,salt),row[0]))
@@ -80,8 +80,8 @@ def manage_account(db,data,actor_id):
         db.execute('UPDATE users SET role=?,lga=?,wards=?,active=?,salt=?,password_hash=?,version=version+1 WHERE id=?',(role,lga,json.dumps(wards),int(active),salt,hashed,record_id))
     else:
         salt=secrets.token_hex(16)
-        cursor=db.execute('INSERT INTO users(username,salt,password_hash,role,lga,wards,active) VALUES(?,?,?,?,?,?,?)',(username,salt,password_hash(password,salt),role,lga,json.dumps(wards),int(active)))
-        record_id=cursor.lastrowid
+        cursor=db.execute('INSERT INTO users(username,salt,password_hash,role,lga,wards,active) VALUES(?,?,?,?,?,?,?) RETURNING id',(username,salt,password_hash(password,salt),role,lga,json.dumps(wards),int(active)))
+        record_id=cursor.fetchone()[0]
     return record_id
 
 def verify(db, username, password):

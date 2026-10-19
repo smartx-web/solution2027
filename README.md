@@ -24,7 +24,7 @@ python3 -m unittest -v
 - Assign consenting primary and backup agents; record Pending, Confirmed or Trained status.
 - Track confirmed PU coverage (Confirmed or Trained assignments), voter totals and agent assignments.
 - Add operational field reports for logistics, incidents and community concerns.
-- Persist data in SQLite across restarts. User input is escaped and writes require a session-specific CSRF token.
+- Persist local data in SQLite and hosted data in Neon PostgreSQL across restarts. User input is escaped and writes require a session-specific CSRF token.
 - Require an enabled account before viewing portal records; permissions control changes. Passwords use salted PBKDF2-SHA256 (600,000 iterations); sessions expire after one hour. Login rotates the session, logout revokes it, and login attempts are limited to five per five minutes per account and 50 per five minutes per address.
 
 Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It contains PU names/codes only, taken from the user-supplied Nigeria_polling_units.csv. It is not a live or independently verified current INEC register. The bundled 2023 historical baseline is loaded separately; other voter totals remain unknown until entered with a source/date. Dashboard totals cover recorded values only. Start with sample agent data.
@@ -117,4 +117,8 @@ Update instructions: stop the server, back up the SQLite database, run `git pull
 
 ## Hosting preparation
 
-Render configuration and a Waitress production entry point are included. See [DEPLOYMENT.md](DEPLOYMENT.md) for costs, initial administrator hash generation, persistent storage, hosted checks and backup/recovery instructions. Run `python3 app.py` for local development; Render runs `python3 deploy.py`. The deployment dependency is `requirements.txt`. This repository change does not create or publish a hosted service.
+Render configuration and a Waitress production entry point are included. See [DEPLOYMENT.md](DEPLOYMENT.md) for initial administrator hash generation, Neon connection settings, hosted checks and backup/recovery instructions. Run `python3 app.py` for local development; Render runs `python3 deploy.py`. The deployment dependency is `requirements.txt`. This repository change does not create or publish a hosted service.
+
+## Neon hosting
+
+The deployment Blueprint now uses Render Free with Neon PostgreSQL. See [DEPLOYMENT.md](DEPLOYMENT.md) for secret environment variables, existing SQLite transfer, backup and verification steps. Install `requirements.txt` for hosted PostgreSQL support; plain local SQLite development remains available.

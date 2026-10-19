@@ -1,4 +1,5 @@
 """Local development portal. Run with python3 app.py."""
+from datetime import datetime, timezone
 import html
 import csv
 import io
@@ -7,22 +8,33 @@ from pathlib import Path
 import auth
 import access
 import baseline
+import database
 import os
 import secrets
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit, urlencode
 
-DB = os.environ.get('SOLUTION_DB', 'solution2027.sqlite3')
+DB = os.environ.get('DATABASE_URL') or os.environ.get('SOLUTION_DB', 'solution2027.sqlite3')
 TOKEN = secrets.token_urlsafe(32)
 
 def connect():
-    db = sqlite3.connect(DB,timeout=30)
-    db.row_factory = sqlite3.Row
-    db.execute('PRAGMA foreign_keys=ON')
-    return db
+    return database.connect(DB)
+
+def seed_directory_data(db):
+    rows=json.loads((Path(__file__).parent/'data'/'apa_agatu_directory.json').read_text())
+    db.executemany('INSERT INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,NULL,?,?) ON CONFLICT(code) DO NOTHING',
+                   [(r['lga'],r['ward'],r['code'],r['name'],'User-supplied Nigeria polling-unit directory snapshot','') for r in rows])
+    added=baseline.seed(db)
+    if added:log_activity(db,'Imported','historical baseline',None,f'{added} PU totals added for 2023; existing sourced totals preserved.')
 
 def init_db(seed_directory=False):
+    if database.is_postgres(DB):
+        database.init_postgres(DB)
+        if seed_directory:
+            with connect() as db:
+                db.begin_write();seed_directory_data(db)
+        return
     with connect() as db:
         auth.init(db)
         baseline.init(db)
@@ -55,7 +67,7 @@ def init_db(seed_directory=False):
         if any(c['name']=='voters' and c['notnull'] for c in columns):
             db.execute('PRAGMA foreign_keys=OFF')
             try:
-                db.execute('BEGIN IMMEDIATE')
+                db.begin_write()
                 db.execute("CREATE TABLE pus_new(id INTEGER PRIMARY KEY,lga TEXT NOT NULL CHECK(lga IN ('Apa','Agatu')),ward TEXT NOT NULL,code TEXT NOT NULL UNIQUE,name TEXT NOT NULL,voters INTEGER CHECK(voters>=0),source TEXT NOT NULL,source_date TEXT NOT NULL)")
                 db.execute('INSERT INTO pus_new SELECT * FROM pus')
                 db.execute('DROP TABLE pus')
@@ -65,12 +77,7 @@ def init_db(seed_directory=False):
             except Exception:
                 db.rollback(); raise
             finally: db.execute('PRAGMA foreign_keys=ON')
-        if seed_directory:
-            rows=json.loads((Path(__file__).parent/'data'/'apa_agatu_directory.json').read_text())
-            db.executemany('INSERT OR IGNORE INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,NULL,?,?)',
-                           [(r['lga'],r['ward'],r['code'],r['name'],'User-supplied Nigeria polling-unit directory snapshot','') for r in rows])
-            added=baseline.seed(db)
-            if added: log_activity(db,'Imported','historical baseline',None,f'{added} PU totals added for 2023; existing sourced totals preserved.')
+        if seed_directory:seed_directory_data(db)
 
 
 PU_COLUMNS = ('lga','ward','code','name','voters','source','source_date')
@@ -120,13 +127,13 @@ def set_agent_archived(data,archived):
     if data.get('confirmed')!='yes': raise ValueError('Confirm the action first.')
     record_id=int(required(data,'id'))
     with connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+        db.begin_write()
         agent=db.execute('SELECT a.archived_at,p.lga,p.ward FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.id=?',(record_id,)).fetchone()
         if not agent: raise ValueError('Agent assignment does not exist.')
         access.require_scope(agent)
         if bool(agent['archived_at'])==archived: raise ValueError('Agent assignment is already in that state.')
         if archived:
-            db.execute('UPDATE agents SET archived_at=CURRENT_TIMESTAMP WHERE id=?',(record_id,))
+            db.execute('UPDATE agents SET archived_at=? WHERE id=?',(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),record_id))
         else:
             db.execute('UPDATE agents SET archived_at=NULL WHERE id=?',(record_id,))
         log_activity(db,'Archived' if archived else 'Restored','agent',record_id,
@@ -136,6 +143,7 @@ def import_pus(text):
     access.require_admin()
     rows=parse_import(text)
     with connect() as db:
+        db.begin_write()
         # A single transaction: a duplicate or invalid row rolls back the whole batch.
         db.executemany('INSERT INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,?,?,?)',rows)
         log_activity(db,'Imported','pu',None,f'{len(rows)} polling units imported.')
@@ -148,7 +156,7 @@ def save(kind, data):
     editing=bool(data.get('id'))
     if editing and kind not in ('pu','agent'): raise ValueError('Unsupported edit.')
     with connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+        db.begin_write()
         before=None
         if editing:
             table_name={'pu':'pus','agent':'agents'}[kind]
@@ -177,7 +185,7 @@ def save(kind, data):
             if editing:
                 cursor=db.execute('UPDATE pus SET lga=?,ward=?,code=?,name=?,voters=?,source=?,source_date=? WHERE id=?',values+(int(req('id')),))
             else:
-                cursor=db.execute('INSERT INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,?,?,?)',values)
+                cursor=db.execute('INSERT INTO pus(lga,ward,code,name,voters,source,source_date) VALUES(?,?,?,?,?,?,?) RETURNING id',values)
         elif kind=='agent':
             phone=req('phone',20)
             if not phone.replace('+','',1).isascii() or not phone.replace('+','',1).isdigit() or not 10<=len(phone)<=15: raise ValueError('Enter a valid phone number.')
@@ -186,12 +194,12 @@ def save(kind, data):
             if editing:
                 cursor=db.execute('UPDATE agents SET pu_id=?,name=?,phone=?,role=?,status=?,consent=1 WHERE id=?',values+(int(req('id')),))
             else:
-                cursor=db.execute('INSERT INTO agents(pu_id,name,phone,role,status,consent) VALUES(?,?,?,?,?,1)',values)
+                cursor=db.execute('INSERT INTO agents(pu_id,name,phone,role,status,consent) VALUES(?,?,?,?,?,1) RETURNING id',values)
         elif kind=='report':
-            cursor=db.execute('INSERT INTO reports(pu_id,category,detail) VALUES(?,?,?)',(int(req('pu_id')),req('category'),req('detail',2000)))
+            cursor=db.execute('INSERT INTO reports(pu_id,category,detail) VALUES(?,?,?) RETURNING id',(int(req('pu_id')),req('category'),req('detail',2000)))
         else: raise ValueError('Unknown action.')
         if editing and cursor.rowcount!=1: raise ValueError('Record no longer exists.')
-        record_id=int(req('id')) if editing else cursor.lastrowid
+        record_id=int(req('id')) if editing else cursor.fetchone()[0]
         if editing:
             columns=PU_COLUMNS if kind=='pu' else ('pu_id','name','phone','role','status')
             after=db.execute(f'SELECT * FROM {table_name} WHERE id=?',(record_id,)).fetchone()
@@ -350,7 +358,7 @@ def account_panel():
 def save_account(data):
     access.require_admin()
     with connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+        db.begin_write()
         user=access.current_user.get()
         record_id=auth.manage_account(db,data,user['id'] if user else None)
         log_activity(db,'Updated' if data.get('id') else 'Created','account',record_id,'Account credentials, role or area settings saved.')
