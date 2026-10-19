@@ -45,6 +45,18 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(self.request('/logout',dict(csrf=csrf))[0],303)
         self.assertEqual(self.request()[0],303)
         self.cookie=anonymous; self.assertEqual(self.request()[0],303)
+    def test_authenticated_import_and_edit(self):
+        self.assertEqual(self.request('/import-preview',dict(csv='test'))[0],303)
+        self.login(); _,_,body=self.request(); csrf=self.csrf(body)
+        text='lga,ward,code,name,voters,source,source_date\nApa,Sample,T2,Sample PU,100,Fixture,2026-10-18\n'
+        status,_,body=self.request('/import-preview',dict(csrf=csrf,csv=text))
+        self.assertEqual(status,200);self.assertIn('Review PU import',body)
+        self.assertEqual(self.request('/import-confirm',dict(csrf=csrf,csv=text))[0],400)
+        self.assertEqual(self.request('/import-confirm',dict(csrf='bad',csv=text,confirmed='yes'))[0],403)
+        self.assertEqual(self.request('/import-confirm',dict(csrf=csrf,csv=text,confirmed='yes'))[0],200)
+        self.assertEqual(self.request('/pu',dict(csrf=csrf,id='1',lga='Apa',ward='Sample',code='T2',name='Corrected',voters='150',source='Fixture',source_date='2026-10-18'))[0],303)
+        self.assertIn('Corrected',self.request()[2])
+
     def test_bad_password_throttle(self):
         _,_,body=self.request('/login'); csrf=self.csrf(body)
         for _ in range(5): self.assertEqual(self.request('/login',dict(csrf=csrf,username='admin',password='incorrect'))[0],401)

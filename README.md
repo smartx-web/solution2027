@@ -33,8 +33,22 @@ No official PU or voter figures are preloaded. Start with sample data. Dashboard
 
 One administrator account is supported. Coordinator roles are deferred. The server binds only to localhost. Continue using sample data: production hosting, HTTPS, access roles, backup procedures and deployment review are still needed before real use. This is a development server, not a production deployment. Sessions and login throttles are held in memory for this single-process local server; restarting signs everyone out. The local HTTP cookie uses HttpOnly and SameSite=Strict. Production deployment must use HTTPS with Secure cookies.
 
-Next: coordinator roles, edit/archive workflows, sourced PU CSV import, exports, audit history and production database/backups.
+Next: coordinator roles, archive workflows, exports, audit history and production database/backups.
 
 The portal does not store individual voter records, PVC/NIN details, or political-affiliation profiles. Operational reports should not include those details.
 
 Database: `solution2027.sqlite3`, excluded from git. Override its path with `SOLUTION_DB`. Keep database backups outside the public repository. No secrets or personal records belong in git.
+
+## Edit and import
+
+After signing in, open **Edit records** and expand a PU or agent to change its details. PU edits keep existing agent/report links. Invalid edits leave the existing record unchanged.
+
+Open **Import PUs** and paste CSV with this exact header:
+
+```csv
+lga,ward,code,name,voters,source,source_date
+```
+
+Each row needs Apa or Agatu, a ward, a unique official PU code, a PU name, a nonnegative integer voter total, a source and an ISO date (`YYYY-MM-DD`). Keep codes as text so leading zeros survive. Quote CSV values containing commas.
+
+Preview validates all rows and shows the first 100 for review. Confirm to save. Imports accept at most 5,000 rows / 1 MB and never overwrite existing PU codes. A conflict or invalid row rejects the entire batch. Validation does not independently verify the figures: use an authoritative dataset and retain its source/date. No official voter data has been imported.
