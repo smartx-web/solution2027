@@ -69,6 +69,14 @@ class AuthenticationTests(unittest.TestCase):
         self.assertIn('location-picker',self.request()[2])
         self.assertEqual(self.request('/portal.js')[0],200)
 
+    def test_filtered_export_requires_login(self):
+        self.assertEqual(self.request('/export/agents.csv')[0],303)
+        self.login();app.init_db(seed_directory=True)
+        status,_,body=self.request('/export/pus.csv?lga=Apa')
+        self.assertEqual(status,200);self.assertIn('Apa',body);self.assertNotIn('Agatu',body)
+        self.assertEqual(self.request('/?lga=Invalid')[0],400)
+        self.assertEqual(self.request('/?lga=Apa&ward=UGBOKPO')[0],200)
+
     def test_bad_password_throttle(self):
         _,_,body=self.request('/login'); csrf=self.csrf(body)
         for _ in range(5): self.assertEqual(self.request('/login',dict(csrf=csrf,username='admin',password='incorrect'))[0],401)

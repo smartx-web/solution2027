@@ -33,7 +33,7 @@ Startup loads the bundled Apa/Agatu directory snapshot (236 PUs in 21 wards). It
 
 One administrator account is supported. Coordinator roles are deferred. The server binds only to localhost. Continue using sample data: production hosting, HTTPS, access roles, backup procedures and deployment review are still needed before real use. This is a development server, not a production deployment. Sessions and login throttles are held in memory for this single-process local server; restarting signs everyone out. The local HTTP cookie uses HttpOnly and SameSite=Strict. Production deployment must use HTTPS with Secure cookies.
 
-Next: coordinator roles, archive workflows, exports, audit history and production database/backups.
+Next: coordinator roles, archive workflows, audit history and production database/backups.
 
 The portal does not store individual voter records, PVC/NIN details, or political-affiliation profiles. Operational reports should not include those details.
 
@@ -61,3 +61,9 @@ As in the volunteer portal, choose **LGA → Ward → Polling unit**. Agent assi
 Restart with `python3 app.py` after updating to load the directory. Existing PU codes, voter figures, agent assignments and reports are preserved. The database migrates unknown voter totals to NULL instead of treating them as zero. A known zero remains zero. Back up your SQLite database while the server is stopped before updating.
 
 The bundled snapshot contains 11 Apa wards / 124 PUs and 10 Agatu wards / 112 PUs. These are file counts, not a claim of current official completeness. Additional PUs can be added or imported. Source: user-provided `Nigeria_polling_units.csv`, extracted 2026-10-19; original publication date is unknown. No voter identities are included.
+
+## Search, filters and CSV downloads
+
+Use **Find records** to filter by LGA, ward, PU/agent search or confirmed-agent coverage. Search matches PU name/code and agent name/phone; results include all assignments and reports belonging to matching PUs. Coverage includes Confirmed and Trained agents. Pending assignments do not count as confirmed coverage. Dashboard counts and CSV downloads follow the same filters. Clear filters to restore the full view.
+
+Authenticated administrators can download polling units, agent assignments or field reports as CSV. Unknown voter totals export as blank. Spreadsheet formula prefixes are escaped and phone numbers receive a leading apostrophe to retain leading zeros. Keep agent exports restricted to authorised coordinators. Creating/editing records remains available across the full directory even when the displayed records are filtered.

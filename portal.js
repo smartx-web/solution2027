@@ -11,6 +11,16 @@
     const response = await fetch('/api/locations', {headers: {Accept: 'application/json'}});
     if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) throw Error('Please sign in again to load the directory.');
     const rows = await response.json();
+    const filterForm = document.querySelector('#filters form');
+    if (filterForm) {
+      const filterLga = filterForm.elements.lga;
+      const filterWard = filterForm.elements.ward;
+      filterLga.addEventListener('change', () => {
+        const wards = [...new Set(rows.filter(row => !filterLga.value || row.lga === filterLga.value).map(row => row.ward))].sort();
+        options(filterWard, 'All wards', wards.map(ward => [ward, ward]));
+        filterWard.disabled = false;
+      });
+    }
     for (const picker of pickers) {
       const form = picker.closest('form');
       const lga = picker.querySelector('[name=location_lga]');
