@@ -381,7 +381,7 @@ def page(message='',extra='',filters=None):
     admin_links='<a href="#import">Import PUs</a><a href="#history">Activity log</a><a href="#accounts">Accounts</a>' if access.is_admin() else ''
     import_section='<section id="import"><h2>Import polling units</h2>'+import_form()+'</section>' if access.is_admin() else ''
     environment_label='Hosted portal · Account access required' if os.environ.get('SOLUTION_ENV')=='production' else 'Local development · Use sample data until production deployment is ready.'
-    body=f'''<header><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
+    body=f'''<header><span class="avatar" role="img" aria-label="Portrait of Solomon"></span><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
     <aside>Signed in: {identity}<br>{environment_label}</aside>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
     {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Other sourced voter totals<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{baseline_total:,}</strong>2023 registered voters<br><small>Historical baseline · {baseline_count}/{len(pus)} PUs matched</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
@@ -390,17 +390,17 @@ def page(message='',extra='',filters=None):
     <section id="reports"><h2>Field reports</h2>{reportform}{table(['PU','Category','Report','Recorded (UTC)'],[(r['code'],r['category'],r['detail'],r['created_at']) for r in reports])}</section><section id="edit"><h2>Edit records</h2>{edit_forms(pus,agents,options,all_pus)}</section>{import_section}{history_panel()}{account_panel()}'''
     return '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solution 2027</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#182b35;font:16px system-ui}header{background:#0c3430;color:white;padding:40px max(5%,20px)}h1{font-size:40px;margin:8px 0}main{max-width:1200px;margin:auto;padding:20px}aside{background:#fff0c6;padding:16px;border-radius:10px}nav{display:flex;flex-wrap:wrap;gap:24px;padding:24px 0}a{color:#086052}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}article,section{background:white;border:1px solid #dce4e6;border-radius:12px;padding:24px}strong{display:block;font-size:30px;color:#096553}section{margin-top:24px}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}label{display:block;font-weight:600}input:not([type=checkbox]),select,textarea,button{width:100%;padding:12px;border:1px solid #bdcbce;border-radius:6px;margin-top:7px;font:inherit}button{background:#096553;color:white;cursor:pointer;align-self:end}details{padding:12px 0;border-bottom:1px solid #dce4e6}summary{cursor:pointer;font-weight:600;margin-bottom:12px}textarea{min-height:140px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8eb;vertical-align:top;overflow-wrap:anywhere}.scroll{overflow:auto}table{border-collapse:collapse;width:100%}form p{font-size:14px}.location-picker{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.directory-status{grid-column:1/-1}input:focus,select:focus,textarea:focus{outline:3px solid #e7bd55}
-    </style></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'<script src="/portal.js" defer></script></main></body></html>'
+    </style><link rel="stylesheet" href="/portal.css"></head><body>'''+body.split('<aside>')[0]+'<main><aside>'+body.split('<aside>',1)[1]+'<script src="/portal.js" defer></script></main></body></html>'
 
 class Handler(BaseHTTPRequestHandler):
     def respond(self,status,document,cookie=None,content_type='text/html; charset=utf-8',filename=None):
-        payload=document.encode()
+        payload=document if isinstance(document,bytes) else document.encode()
         self.send_response(status)
         self.send_header('Content-Type',content_type)
         self.send_header('Content-Length',str(len(payload)))
         self.send_header('Cache-Control','no-store')
         self.send_header('X-Content-Type-Options','nosniff')
-        self.send_header('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header('Content-Security-Policy',"default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
         if cookie is not None: self.send_header('Set-Cookie',auth.cookie(cookie))
         if filename: self.send_header('Content-Disposition','attachment; filename="'+filename+'"')
         self.end_headers(); self.wfile.write(payload)
@@ -421,7 +421,12 @@ class Handler(BaseHTTPRequestHandler):
         except PermissionError as error:
             self.respond(403,'<!doctype html><title>Access denied</title><h1>Access denied</h1><p>'+esc(error)+'</p><a href="/">Return to portal</a>')
         finally: access.current_user.reset(context)
-    def do_GET(self): self.run_with_user(self.handle_get)
+    def do_GET(self):
+        public={'/portal.css':('portal.css','text/css; charset=utf-8'),'/assets/solomon.jpg':('assets/solomon.jpg','image/jpeg')}
+        asset=public.get(urlsplit(self.path).path)
+        if asset:
+            self.respond(200,(Path(__file__).parent/asset[0]).read_bytes(),content_type=asset[1]);return
+        self.run_with_user(self.handle_get)
     def do_POST(self): self.run_with_user(self.handle_post)
     def handle_get(self):
         url=urlsplit(self.path); path=url.path
