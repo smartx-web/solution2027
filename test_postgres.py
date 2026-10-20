@@ -51,6 +51,16 @@ class PostgresTests(unittest.TestCase):
             with patch('database.init_postgres'),patch('database.connect',return_value=target):
                 with self.assertRaises(ValueError):transfer.migrate(source,'postgresql://test',apply=True)
             target.executemany.assert_not_called()
+    def test_dump_connection_settings_preserve_tls_without_url_in_argv(self):
+        from manage import postgres_dump_environment
+        settings=postgres_dump_environment('postgresql://sample-user:sample-password@sample.neon.tech:5432/portal?sslmode=verify-full&channel_binding=require')
+        self.assertEqual(settings['PGDATABASE'],'portal')
+        self.assertEqual(settings['PGHOST'],'sample.neon.tech')
+        self.assertEqual(settings['PGUSER'],'sample-user')
+        self.assertEqual(settings['PGPASSWORD'],'sample-password')
+        self.assertEqual(settings['PGSSLMODE'],'verify-full')
+        self.assertEqual(settings['PGCHANNELBINDING'],'require')
+
     def test_health_does_not_wake_neon(self):
         with patch('app.connect',side_effect=AssertionError('health must not connect')):
             response=deploy.application({'PATH_INFO':'/healthz','REQUEST_METHOD':'GET'},lambda *args:None)

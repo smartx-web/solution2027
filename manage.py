@@ -12,6 +12,17 @@ import app
 import backups
 
 
+def postgres_dump_environment(target):
+    """Pass parsed libpq settings through env vars, keeping secrets out of argv."""
+    from psycopg.conninfo import conninfo_to_dict
+    from psycopg.pq import Conninfo
+    bindings={option.keyword.decode():option.envvar.decode() for option in Conninfo.get_defaults() if option.envvar}
+    settings=conninfo_to_dict(target)
+    if any(key not in bindings for key in settings):
+        raise ValueError('The PostgreSQL URL uses a setting pg_dump cannot receive securely.')
+    return {**os.environ,**{bindings[key]:value for key,value in settings.items()}}
+
+
 def main():
     parser=argparse.ArgumentParser()
     commands=parser.add_subparsers(dest='command',required=True)
@@ -36,7 +47,7 @@ def main():
         os.umask(0o077)
         # Credentials stay in the child environment, never command arguments.
         with open(args.output,'xb') as output:
-            subprocess.run(['pg_dump','--format=custom','--no-owner','--no-acl'],env={**os.environ,'PGDATABASE':target},stdout=output,check=True)
+            subprocess.run(['pg_dump','--format=custom','--no-owner','--no-acl'],env=postgres_dump_environment(target),stdout=output,check=True)
         print('Backup saved. Verify it with pg_restore --list before storing it securely.')
     else:
         if database.is_postgres(app.DB):raise SystemExit('Use dump-postgres for PostgreSQL backups.')

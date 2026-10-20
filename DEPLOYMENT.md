@@ -55,3 +55,22 @@ pg_restore --list /secure/path/solution2027.dump
 Use the direct URL in DATABASE_URL_UNPOOLED. The output is created exclusively with owner-only permissions. Test restoration into a separate database before relying on backups. Neon recovery windows are plan-dependent and do not replace off-server backups; no recurring backup job is provisioned here.
 
 After deployment check `/healthz`, login, secure cookies, dashboard totals (236 PUs and historical 131,035), ward-scoped access, agent creation/archival, CSV export and logout. Make a test change and verify it survives a Render restart. Check logs without sharing secrets.
+
+## PU Results upgrade
+
+Install the updated `requirements.txt` (Pillow validates result-sheet photos). Restarting applies migration 002 for agent PU assignments, immutable result revisions and verification history. Back up first and validate the migration in the separate test database before switching production. Result-sheet JPEG/PNG uploads are limited to 2 MiB / 20 megapixels and stored as base64 database records; include these growing tables in backup capacity planning. Render’s local filesystem is not used for uploads. Existing PostgreSQL dump and SQLite backup commands include photos and result history. SQLite transfer now includes result revisions, review events and PU account assignments; upgrade a SQLite copy before transfer as described above.
+
+After upgrading, check an authenticated multipart submission, photo retrieval, arithmetic flags, a correction with retained original evidence, and an administrator review. Check that viewers cannot submit, coordinators cannot reach another ward, and PU agents cannot reach another PU’s result or photo. Use sample records in the test database.
+
+### Local PostgreSQL release checks
+
+`test_postgres_integration.py` uses only a local Unix socket and creates/drops its own randomly named disposable databases. It checks the real v1 → v2 migration with existing accounts, repeated seeding, result corrections/flags/permissions, SQLite transfer including photo/history and identity sequences, and the `manage.py dump-postgres` backup command followed by a real restore. It never accepts a remote production URL. With a local PostgreSQL 17+ instance and matching client tools:
+
+```bash
+SOLUTION_TEST_PG_SOCKET=/absolute/private/socket \
+SOLUTION_TEST_PG_PORT=55432 \
+SOLUTION_TEST_PG_BIN=/path/to/postgresql/bin \
+.venv/bin/python -m unittest -v
+```
+
+Without these variables, the four live PostgreSQL tests are explicitly skipped; the remaining suite still runs. The dump command parses the direct URL into libpq environment variables, retaining TLS and channel-binding requirements while keeping credentials out of command arguments. Local PostgreSQL validation does not establish live Neon or Render connectivity.

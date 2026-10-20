@@ -4,7 +4,13 @@ Python portal for Engr. Solomon Eigege Oloche’woche’s polling-unit agent coo
 
 ## Run locally
 
-Requires Python 3.10 or newer. No packages to install.
+Requires Python 3.10 or newer. Install the pinned dependencies (including Pillow for result-sheet photo validation):
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ```bash
 python3 app.py --setup-admin
@@ -121,4 +127,20 @@ Render configuration and a Waitress production entry point are included. See [DE
 
 ## Neon hosting
 
-The deployment Blueprint now uses Render Free with Neon PostgreSQL. See [DEPLOYMENT.md](DEPLOYMENT.md) for secret environment variables, existing SQLite transfer, backup and verification steps. Install `requirements.txt` for hosted PostgreSQL support; plain local SQLite development remains available.
+The deployment Blueprint now uses Render Free with Neon PostgreSQL. See [DEPLOYMENT.md](DEPLOYMENT.md) for secret environment variables, existing SQLite transfer, backup and verification steps. Install `requirements.txt` for photo validation and hosted PostgreSQL support; local SQLite development remains available.
+
+## PU Results
+
+Open **PU Results** in the navigation. Choose LGA → ward → polling unit and enter a consistent election/contest label including its date. Each PU has a separate revision history per election label. Enter the submitter’s name, registered and accredited voters, valid and rejected/invalid votes, and total votes cast. Eight party rows are provided; use **Add another party** for more (up to 64). Every count is required; enter 0 only when the sheet records zero. Cancellation status and notes are separate from verification. Cancelled results require an explanation.
+
+Attach a JPEG or PNG result-sheet photo (up to 2 MiB and 20 megapixels). Photos are validated and stored in the database, included in database backups/transfers, and accessible only to signed-in accounts permitted to view that PU. No public upload directory or external storage credentials are needed.
+
+Submissions are labelled **team-reported, pending verification**, never official results. The server flags party votes that differ from valid votes, valid plus rejected votes that differ from votes cast, votes cast exceeding accreditation, accreditation exceeding registration, and cancelled submissions containing votes. Flags are retained for review; they do not silently change or discard the supplied counts.
+
+Open a submission to inspect its photo, counts and full history. Submit corrections from the latest revision with a required reason. Each correction retains earlier figures, evidence, submitter/account and UTC time; it resets verification to pending. Leave the photo blank to retain the previous evidence, or attach a replacement; earlier photos remain accessible in history. Simultaneous or stale corrections are rejected so they cannot overwrite a newer submission.
+
+Only administrators record verification decisions (**Pending verification**, **Verified by team**, **Disputed**), with required review notes. Decisions are appended to the selected revision’s review history. “Verified by team” describes internal review, not official certification; explain any arithmetic flags in the review notes.
+
+Coordinators submit/correct results only in their assigned LGA/wards. Viewers remain read-only. In **Accounts**, an administrator can create a **PU Agent** login and select its one assigned polling unit. Agent logins can view that PU and submit/correct its results; they cannot edit directory/contact/report records, manage users, review results or access other PUs or their photos. Login assignment is separate from the agent contact directory. Changing role, PU assignment, password or enabled status invalidates existing sessions.
+
+Install dependencies and restart the app after updating. Existing SQLite accounts migrate automatically with IDs and credentials preserved; PostgreSQL applies `migrations/002_postgres.sql` on startup. Back up the database before updating. Production PostgreSQL migration needs verification in a separate test database before deployment.

@@ -15,7 +15,16 @@ _lock = threading.Lock()
 
 def init(db):
     db.execute('CREATE TABLE IF NOT EXISTS administrator (id INTEGER PRIMARY KEY CHECK(id=1), username TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL)')
-    db.execute("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username TEXT NOT NULL UNIQUE,salt TEXT NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('admin','viewer','coordinator')),lga TEXT NOT NULL DEFAULT '',wards TEXT NOT NULL DEFAULT '[]',active INTEGER NOT NULL DEFAULT 1,version INTEGER NOT NULL DEFAULT 1)")
+    db.execute("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username TEXT NOT NULL UNIQUE,salt TEXT NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('admin','viewer','coordinator','agent')),lga TEXT NOT NULL DEFAULT '',wards TEXT NOT NULL DEFAULT '[]',active INTEGER NOT NULL DEFAULT 1,version INTEGER NOT NULL DEFAULT 1)")
+    # Upgrade the SQLite role constraint without changing account IDs or sessions.
+    schema=db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").fetchone()[0]
+    if "'agent'" not in schema:
+        db.execute("CREATE TABLE users_results_upgrade(id INTEGER PRIMARY KEY,username TEXT NOT NULL UNIQUE,salt TEXT NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('admin','viewer','coordinator','agent')),lga TEXT NOT NULL DEFAULT '',wards TEXT NOT NULL DEFAULT '[]',active INTEGER NOT NULL DEFAULT 1,version INTEGER NOT NULL DEFAULT 1,pu_id INTEGER)")
+        db.execute('INSERT INTO users_results_upgrade(id,username,salt,password_hash,role,lga,wards,active,version) SELECT id,username,salt,password_hash,role,lga,wards,active,version FROM users')
+        db.execute('DROP TABLE users')
+        db.execute('ALTER TABLE users_results_upgrade RENAME TO users')
+    elif not any(row['name']=='pu_id' for row in db.execute('PRAGMA table_info(users)')):
+        db.execute('ALTER TABLE users ADD COLUMN pu_id INTEGER')
     legacy=db.execute('SELECT username,salt,password_hash FROM administrator WHERE id=1').fetchone()
     if legacy and not db.execute('SELECT 1 FROM users LIMIT 1').fetchone():
         db.execute("INSERT INTO users(username,salt,password_hash,role) VALUES(?,?,?,'admin')",tuple(legacy))
@@ -31,7 +40,7 @@ def configure(db, username, password):
     db.execute('INSERT INTO administrator(id,username,salt,password_hash) VALUES(1,?,?,?) ON CONFLICT(id) DO UPDATE SET username=excluded.username,salt=excluded.salt,password_hash=excluded.password_hash',(username,salt,password_hash(password,salt)))
     row=db.execute('SELECT id FROM users WHERE username=?',(username,)).fetchone()
     if row:
-        db.execute("UPDATE users SET salt=?,password_hash=?,role='admin',lga='',wards='[]',active=1,version=version+1 WHERE id=?",(salt,password_hash(password,salt),row[0]))
+        db.execute("UPDATE users SET salt=?,password_hash=?,role='admin',lga='',wards='[]',pu_id=NULL,active=1,version=version+1 WHERE id=?",(salt,password_hash(password,salt),row[0]))
     else:
         db.execute("INSERT INTO users(username,salt,password_hash,role) VALUES(?,?,?,'admin')",(username,salt,password_hash(password,salt)))
     with _lock: _sessions.clear()
@@ -39,6 +48,7 @@ def configure(db, username, password):
 def user_snapshot(row):
     if not row: return None
     result={key:row[key] for key in ('id','username','role','lga','active','version')}
+    result['pu_id']=row['pu_id']
     result['wards']=json.loads(row['wards'])
     return result
 
@@ -61,7 +71,13 @@ def manage_account(db,data,actor_id):
     password=data.get('password','')
     active=data.get('active')=='yes'
     record_id=int(data['id']) if data.get('id') else None
-    if not username or len(username)>100 or role not in ('admin','viewer','coordinator'): raise ValueError('Choose a valid username and role.')
+    if not username or len(username)>100 or role not in ('admin','viewer','coordinator','agent'): raise ValueError('Choose a valid username and role.')
+    pu_id=None
+    if role=='agent':
+        try: pu_id=int(data.get('pu_id',''))
+        except (ValueError,TypeError): raise ValueError('Assign the agent to a polling unit.')
+        if not 0<pu_id<2**63: raise ValueError('Choose a valid polling unit.')
+        if not db.execute('SELECT 1 FROM pus WHERE id=?',(pu_id,)).fetchone(): raise ValueError('Polling unit does not exist.')
     if role=='coordinator':
         if lga not in ('Apa','Agatu'): raise ValueError('Choose the coordinator LGA.')
         known={r[0] for r in db.execute('SELECT DISTINCT ward FROM pus WHERE lga=?',(lga,))}
@@ -77,10 +93,10 @@ def manage_account(db,data,actor_id):
     if old:
         salt=secrets.token_hex(16) if password else old['salt']
         hashed=password_hash(password,salt) if password else old['password_hash']
-        db.execute('UPDATE users SET role=?,lga=?,wards=?,active=?,salt=?,password_hash=?,version=version+1 WHERE id=?',(role,lga,json.dumps(wards),int(active),salt,hashed,record_id))
+        db.execute('UPDATE users SET role=?,lga=?,wards=?,active=?,salt=?,password_hash=?,pu_id=?,version=version+1 WHERE id=?',(role,lga,json.dumps(wards),int(active),salt,hashed,pu_id,record_id))
     else:
         salt=secrets.token_hex(16)
-        cursor=db.execute('INSERT INTO users(username,salt,password_hash,role,lga,wards,active) VALUES(?,?,?,?,?,?,?) RETURNING id',(username,salt,password_hash(password,salt),role,lga,json.dumps(wards),int(active)))
+        cursor=db.execute('INSERT INTO users(username,salt,password_hash,role,lga,wards,active,pu_id) VALUES(?,?,?,?,?,?,?,?) RETURNING id',(username,salt,password_hash(password,salt),role,lga,json.dumps(wards),int(active),pu_id))
         record_id=cursor.fetchone()[0]
     return record_id
 

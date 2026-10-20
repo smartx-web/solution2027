@@ -19,8 +19,15 @@ def require_write():
 
 def in_scope(pu):
     user=current_user.get()
+    if user and user['role']=='agent': return str(pu['id'])==str(user.get('pu_id'))
     if user is None or user['role']!='coordinator': return True
     return pu['lga']==user['lga'] and (not user['wards'] or pu['ward'] in user['wards'])
 
 def require_scope(pu):
     if pu is None or not in_scope(pu): raise PermissionError('This polling unit is outside your assigned area.')
+
+
+def require_results_write():
+    user=current_user.get()
+    if user and user['role'] not in ('admin','coordinator','agent'):
+        raise PermissionError('This account has viewing access only.')

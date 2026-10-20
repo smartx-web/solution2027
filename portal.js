@@ -68,3 +68,43 @@
     }
   }
 })();
+
+(function () {
+  const container = document.getElementById('result-parties');
+  const add = document.getElementById('add-result-party');
+  if (!container || !add) return;
+  add.addEventListener('click', () => {
+    const index = container.querySelectorAll('.party-row').length;
+    if (index >= 64) { add.disabled = true; return; }
+    const row = document.createElement('div');
+    row.className = 'party-row';
+    for (const [prefix, title, type] of [['party_', 'Party', 'text'], ['votes_', 'Votes', 'number']]) {
+      const label = document.createElement('label');
+      label.textContent = title;
+      const input = document.createElement('input');
+      input.name = prefix + index;
+      input.type = type;
+      input.required = true;
+      if (type === 'number') { input.min = '0'; input.max = '999999999'; input.step = '1'; }
+      else input.maxLength = 40;
+      label.append(input);
+      row.append(label);
+    }
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = 'Remove this party';
+    remove.addEventListener('click', () => {
+      row.remove();
+      // Renumber optional rows so additions cannot duplicate submitted field names.
+      container.querySelectorAll('.party-row').forEach((item, i) => {
+        item.querySelector('input[type=text]').name = 'party_' + i;
+        item.querySelector('input[type=number]').name = 'votes_' + i;
+      });
+      add.disabled = false;
+    });
+    row.append(remove);
+    container.append(row);
+    row.querySelector('input').focus();
+    if (index === 63) add.disabled = true;
+  });
+})();

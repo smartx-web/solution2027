@@ -67,6 +67,9 @@ def init_postgres(target):
     if '-pooler' in (urlsplit(direct).hostname or ''):raise ValueError('Use a direct DATABASE_URL_UNPOOLED for migrations.')
     with connect(direct) as db:
         db.begin_write()
-        sql=(Path(__file__).parent/'migrations'/'001_postgres.sql').read_text()
-        for statement in sql.split(';'):
-            if statement.strip():db.execute(statement)
+        for migration in sorted((Path(__file__).parent/'migrations').glob('*_postgres.sql')):
+            version=int(migration.name.split('_',1)[0])
+            if version>1 and db.execute('SELECT 1 FROM schema_migrations WHERE version=?',(version,)).fetchone():
+                continue
+            for statement in migration.read_text().split(';'):
+                if statement.strip():db.execute(statement)

@@ -6,6 +6,7 @@ import io
 import json
 from pathlib import Path
 import auth
+import results
 import access
 import baseline
 import database
@@ -77,6 +78,7 @@ def init_db(seed_directory=False):
             except Exception:
                 db.rollback(); raise
             finally: db.execute('PRAGMA foreign_keys=ON')
+        results.init(db)
         if seed_directory:seed_directory_data(db)
 
 
@@ -323,8 +325,8 @@ def export_csv(kind,filters=None):
 
 def history_panel():
     with connect() as db:
-        archived=db.execute('SELECT a.id,a.name,a.archived_at,p.code,p.lga,p.ward FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NOT NULL ORDER BY a.archived_at DESC,a.id DESC').fetchall()
-        archived=[a for a in archived if access.in_scope(a)]
+        archived=db.execute('SELECT a.id,a.pu_id,a.name,a.archived_at,p.code,p.lga,p.ward FROM agents a JOIN pus p ON p.id=a.pu_id WHERE a.archived_at IS NOT NULL ORDER BY a.archived_at DESC,a.id DESC').fetchall()
+        archived=[a for a in archived if access.in_scope(dict(id=a['pu_id'],lga=a['lga'],ward=a['ward']))]
         history=db.execute('SELECT * FROM activity_log ORDER BY id DESC LIMIT 50').fetchall() if access.is_admin() else []
     content='<section id="archive"><h2>Archived assignments</h2><p>Archived agents are excluded from active lists, coverage and exports. This list is independent of dashboard filters. Restore only if the agent still consents to the assignment.</p>'
     if not archived: content+='<p>No archived assignments.</p>'
@@ -339,18 +341,21 @@ def history_panel():
 def account_panel():
     if not access.is_admin(): return ''
     with connect() as db:
-        accounts=db.execute('SELECT id,username,role,lga,wards,active FROM users ORDER BY username').fetchall()
+        accounts=db.execute('SELECT id,username,role,lga,wards,active,pu_id FROM users ORDER BY username').fetchall()
+        directory=[dict(row) for row in db.execute('SELECT * FROM pus ORDER BY lga,ward,code')]
     def account_fields(account=None):
         account=dict(account) if account else dict(username='',role='viewer',lga='',wards='[]',active=1)
         fields='<input type="hidden" name="id" value="'+str(account.get('id',''))+'">'
         fields+=field('username','Username',value=account['username']).replace(' required maxlength',' readonly required maxlength') if account.get('id') else field('username','Username')
-        fields+='<label>Role'+select('role',[(v,label) for v,label in [('admin','Administrator'),('viewer','Viewer'),('coordinator','Coordinator')]],account['role'])+'</label>'
+        fields+='<label>Role'+select('role',[(v,label) for v,label in [('admin','Administrator'),('viewer','Viewer'),('coordinator','Coordinator'),('agent','PU Agent')]],account['role'])+'</label>'
+        fields+='<p>PU agents may submit results only for the assigned polling unit. Assignment is separate from the contact directory.</p>'+location_picker(directory,account.get('pu_id'))
+        fields=fields.replace('<select name="pu_id" required>','<select name="pu_id">').replace('<select name="location_lga" required>','<select name="location_lga">').replace('<select name="location_ward" required>','<select name="location_ward">')
         fields+='<label>Coordinator LGA'+select('lga',[('','Not applicable'),('Apa','Apa'),('Agatu','Agatu')],account['lga']).replace(' required','')+'</label>'
         fields+='<label>Coordinator wards (one exact ward name per line; blank means entire LGA)<textarea name="wards" maxlength="10000">'+esc('\n'.join(json.loads(account['wards'])))+'</textarea></label>'
         fields+='<label>'+('New password (leave blank to keep current)' if account.get('id') else 'Password (12 characters minimum)')+'<input name="password" type="password" autocomplete="new-password" maxlength="1024"'+('' if account.get('id') else ' required')+'></label>'
         fields+='<label><input type="checkbox" name="active" value="yes"'+(' checked' if account['active'] else '')+'> Account enabled</label>'
         return fields
-    content='<section id="accounts"><h2>Accounts and permissions</h2><p>Viewers can read and export the full portal. Coordinators can read, export and manage assignments/reports within one LGA or selected wards, and update sourced voter totals there. Administrators manage the full portal and accounts. Changing an account signs it out.</p><details><summary>Create an account</summary>'+form('user',account_fields())+'</details>'
+    content='<section id="accounts"><h2>Accounts and permissions</h2><p>PU agents can view their assigned polling unit and submit its results. Viewers can read and export the full portal. Coordinators can read, export and manage assignments/reports within one LGA or selected wards, and update sourced voter totals there. Administrators manage the full portal and accounts. Changing an account signs it out.</p><details><summary>Create an account</summary>'+form('user',account_fields())+'</details>'
     for account in accounts:
         content+='<details><summary>'+esc(account['username'])+' · '+esc(account['role'])+(' · disabled' if not account['active'] else '')+'</summary>'+form('user',account_fields(account))+'</details>'
     return content+'</section>'
@@ -383,7 +388,7 @@ def page(message='',extra='',filters=None):
     environment_label='Hosted portal · Account access required' if os.environ.get('SOLUTION_ENV')=='production' else 'Local development · Use sample data until production deployment is ready.'
     body=f'''<header><span class="avatar" role="img" aria-label="Portrait of Solomon"></span><small>APA · AGATU</small><h1>Solution 2027</h1><p>Engr. Solomon Eigege Oloche’woche · Agent coordination portal</p></header>
     <aside>Signed in: {identity}<br>{environment_label}</aside>
-    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{TOKEN}"><button>Sign out</button></form><nav><a href="/results">PU Results</a><a href="#pus">Polling units</a><a href="#agents">Agents</a><a href="#reports">Field reports</a><a href="#edit">Edit records</a><a href="#archive">Archived agents</a>{admin_links}</nav><p role="status">{esc(message)}</p>
     {filter_panel(all_pus,filters)}<div class="stats"><article><strong>{len(pus)}</strong>Polling units entered</article><article><strong>{sum(p['voters'] or 0 for p in pus):,}</strong>Other sourced voter totals<br><small>{sum(p["voters"] is None for p in pus)} PUs without totals</small></article><article><strong>{baseline_total:,}</strong>2023 registered voters<br><small>Historical baseline · {baseline_count}/{len(pus)} PUs matched</small></article><article><strong>{covered}/{len(pus)}</strong>PUs with confirmed agents</article><article><strong>{len(agents)}</strong>Agent assignments</article></div>
     {extra}<section id="pus"><h2>Polling units</h2><p>Select LGA → ward → polling unit to record a sourced voter total. Directory names come from your saved snapshot and may need updating. Blank totals mean not recorded.</p>{baseline_note}{directoryform}{manual_pu}{table(['LGA','Ward','Code','PU','2023 registered voters (historical)','Other entered total','Other total source','Other total source date'],[(p['lga'],p['ward'],p['code'],p['name'],('Not recorded' if p['voters_2023'] is None else p['voters_2023']),('Not recorded' if p['voters'] is None else p['voters']),p['source'],p['source_date']) for p in pus])}</section>
     <section id="agents"><h2>Agent assignments</h2>{agentform}{table(['PU','Agent','Phone','Role','Status'],[(a['code'],a['name'],a['phone'],a['role'],a['status']) for a in agents])}</section>
@@ -431,10 +436,23 @@ class Handler(BaseHTTPRequestHandler):
     def handle_get(self):
         url=urlsplit(self.path); path=url.path
         exports={f'/export/{kind}.csv':kind for kind in ('pus','agents','reports')}
-        if path not in ('/','/login','/portal.js','/api/locations') and path not in exports: self.send_error(404); return
+        if path not in ('/','/login','/portal.js','/api/locations','/results','/results/photo') and path not in exports: self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if session and session['authenticated']:
             if path=='/login': self.redirect('/'); return
+            if path in ('/results','/results/photo'):
+                try:
+                    params=parse_qs(url.query,max_num_fields=2)
+                    result_id=params.get('id',[None])[0]
+                    with connect() as db:
+                        if path=='/results/photo':
+                            import base64
+                            row=results.get(db,int(result_id or '0'))
+                            self.respond(200,base64.b64decode(row['photo']),content_type=row['photo_type']);return
+                        document=results.page(db,session['csrf'],result_id)
+                    self.respond(200,document);return
+                except ValueError as error:
+                    self.respond(400,esc(error));return
             if path=='/api/locations':
                 with connect() as db:
                     rows=[dict(r) for r in db.execute('SELECT p.id,p.lga,p.ward,p.code,p.name,p.voters,p.source,p.source_date,b.registered_voters AS voters_2023 FROM pus p LEFT JOIN voter_baselines b ON b.pu_code=p.code AND b.year=2023 ORDER BY p.code') if access.in_scope(r)]
@@ -454,7 +472,30 @@ class Handler(BaseHTTPRequestHandler):
         cookie=None
         if not session: cookie,session=auth.new_session()
         self.respond(200,auth.login_page(session['csrf']),cookie)
+    def handle_result_post(self):
+        _,session=auth.get_session(self.headers.get('Cookie'))
+        if not session or not session['authenticated']:
+            self.redirect('/login');return
+        data={}
+        try:
+            size=int(self.headers.get('Content-Length','0'))
+            if not 0<size<=results.MAX_BODY:
+                self.send_error(413);return
+            data,photo=results.parse_request(self.headers.get('Content-Type',''),self.rfile.read(size))
+            if not secrets.compare_digest(data.get('csrf','').encode(),session['csrf'].encode()):
+                self.send_error(403);return
+            with connect() as db:
+                if self.path=='/results/review':
+                    results.review(db,data);record_id=int(data['result_id'])
+                else:record_id=results.save(db,data,photo)
+            self.redirect('/results?id='+str(record_id))
+        except (ValueError,sqlite3.IntegrityError,UnicodeError) as error:
+            # Do not echo credentials or upload bodies into an error response.
+            self.respond(400,'<!doctype html><title>Result not saved</title><h1>Result not saved</h1><p>'+esc(error)+'</p><p>Use your browser’s Back button to retain the form and correct it.</p><a href="/results">PU Results</a>')
+
     def handle_post(self):
+        if self.path in ('/results','/results/review'):
+            self.handle_result_post();return
         if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent','/user'): self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if not session or (self.path!='/login' and not session['authenticated']):
