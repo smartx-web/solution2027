@@ -45,9 +45,13 @@ def configure(db, username, password):
         db.execute("INSERT INTO users(username,salt,password_hash,role) VALUES(?,?,?,'admin')",(username,salt,password_hash(password,salt)))
     with _lock: _sessions.clear()
 
+def account_key(row):
+    return hashlib.sha256((str(row['id'])+':'+row['salt']).encode()).hexdigest()
+
 def user_snapshot(row):
     if not row: return None
     result={key:row[key] for key in ('id','username','role','lga','active','version')}
+    result['account_key']=account_key(row)
     result['pu_id']=row['pu_id']
     result['wards']=json.loads(row['wards'])
     return result
@@ -61,7 +65,7 @@ def authenticate(db,username,password):
 def session_user(db,session):
     if not session or not session.get('authenticated') or not session.get('user_id'): return None
     row=db.execute('SELECT * FROM users WHERE id=?',(session['user_id'],)).fetchone()
-    if not row or not row['active'] or row['version']!=session.get('user_version'): return None
+    if not row or not row['active'] or row['version']!=session.get('user_version') or account_key(row)!=session.get('account_key'): return None
     return user_snapshot(row)
 
 def manage_account(db,data,actor_id):
@@ -100,6 +104,29 @@ def manage_account(db,data,actor_id):
         record_id=cursor.fetchone()[0]
     return record_id
 
+def delete_account(db,data,actor_id):
+    """Remove a non-admin login; caller owns the write transaction and permission check."""
+    if data.get('confirmed')!='yes': raise ValueError('Confirm permanent deletion of this account.')
+    try:
+        record_id=int(data.get('id',''))
+        version=int(data.get('version',''))
+    except (ValueError,TypeError): raise ValueError('Choose a valid account to delete.')
+    if not 0<record_id<2**63: raise ValueError('Choose a valid account to delete.')
+    row=db.execute('SELECT id,username,role,version,salt FROM users WHERE id=?',(record_id,)).fetchone()
+    if not row: raise ValueError('Account no longer exists.')
+    if row['role']=='admin' or record_id==actor_id: raise ValueError('Administrator accounts cannot be deleted here.')
+    if row['username']!=data.get('username') or row['version']!=version or account_key(row)!=data.get('account_key'):
+        raise ValueError('This account has changed. Refresh Accounts before deleting it.')
+    db.execute('DELETE FROM users WHERE id=?',(record_id,))
+    return {key:row[key] for key in ('id','username','role')}
+
+def revoke_user(user_id):
+    # Remove tokens too: SQLite may reuse a deleted highest row ID for a new user.
+    with _lock:
+        for token in list(_sessions):
+            if _sessions[token].get('user_id')==user_id: del _sessions[token]
+
+
 def verify(db, username, password):
     return authenticate(db,username,password) is not None
 
@@ -108,7 +135,7 @@ def new_session(authenticated=False,user=None):
     token=secrets.token_urlsafe(32)
     session={'csrf':secrets.token_urlsafe(32),'authenticated':authenticated,'expires':time.monotonic()+SESSION_SECONDS}
     if user:
-        session['user_id']=user['id'];session['user_version']=user['version']
+        session['user_id']=user['id'];session['user_version']=user['version'];session['account_key']=user.get('account_key','')
     with _lock:
         now=time.monotonic()
         for key in list(_sessions):

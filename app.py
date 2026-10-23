@@ -215,9 +215,10 @@ def select(name, values, selected=None):
 def field(name,label,typ='text',value=''):
     return f'<label>{label}<input name="{name}" type="{typ}" value="{esc(value)}" required maxlength="500"'+(' min="0" step="1"' if typ=='number' else '')+'></label>'
 def form(kind,content):
-    if not access.can_write() or (kind in ('import-preview','import-confirm','user') and not access.is_admin()): return ''
-    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report','archive-agent':'Archive assignment','restore-agent':'Restore assignment','user':'Save account'}[kind]
-    return f'<form method="post" action="/{kind}"><input type="hidden" name="csrf" value="{TOKEN}">{content}<button>{button}</button></form>'
+    if not access.can_write() or (kind in ('import-preview','import-confirm','user','delete-user') and not access.is_admin()): return ''
+    button={'import-preview':'Preview import','import-confirm':'Confirm import','pu':'Save polling unit','agent':'Save agent','report':'Save report','archive-agent':'Archive assignment','restore-agent':'Restore assignment','user':'Save account','delete-user':'Delete account'}[kind]
+    css_class=' class="account-delete"' if kind=='delete-user' else ''
+    return f'<form method="post" action="/{kind}"{css_class}><input type="hidden" name="csrf" value="{TOKEN}">{content}<button>{button}</button></form>'
 def table(headers,rows):
     return '<div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(h)}</th>' for h in headers)+'</tr></thead><tbody>'+(''.join('<tr>'+''.join(f'<td>{esc(v)}</td>' for v in row)+'</tr>' for row in rows) or f'<tr><td colspan="{len(headers)}">No records yet.</td></tr>')+'</tbody></table></div>'
 def location_picker(pus,selected=None):
@@ -341,7 +342,7 @@ def history_panel():
 def account_panel():
     if not access.is_admin(): return ''
     with connect() as db:
-        accounts=db.execute('SELECT id,username,role,lga,wards,active,pu_id FROM users ORDER BY username').fetchall()
+        accounts=db.execute('SELECT id,username,role,lga,wards,active,pu_id,version,salt FROM users ORDER BY username').fetchall()
         directory=[dict(row) for row in db.execute('SELECT * FROM pus ORDER BY lga,ward,code')]
     def account_fields(account=None):
         account=dict(account) if account else dict(username='',role='viewer',lga='',wards='[]',active=1)
@@ -357,7 +358,13 @@ def account_panel():
         return fields
     content='<section id="accounts"><h2>Accounts and permissions</h2><p>PU agents can view their assigned polling unit and submit its results. Viewers can read and export the full portal. Coordinators can read, export and manage assignments/reports within one LGA or selected wards, and update sourced voter totals there. Administrators manage the full portal and accounts. Changing an account signs it out.</p><details><summary>Create an account</summary>'+form('user',account_fields())+'</details>'
     for account in accounts:
-        content+='<details><summary>'+esc(account['username'])+' · '+esc(account['role'])+(' · disabled' if not account['active'] else '')+'</summary>'+form('user',account_fields(account))+'</details>'
+        content+='<details><summary>'+esc(account['username'])+' · '+esc(account['role'])+(' · disabled' if not account['active'] else '')+'</summary>'+form('user',account_fields(account))
+        if account['role'] in ('coordinator','viewer','agent'):
+            account=dict(account);account['account_key']=auth.account_key(account)
+            deletion=''.join('<input type="hidden" name="'+key+'" value="'+esc(account[key])+'">' for key in ('id','username','version','account_key'))
+            deletion+='<label><input type="checkbox" name="confirmed" value="yes" required> Permanently delete the login for '+esc(account['username'])+'</label><p>This removes sign-in access and ends its sessions. Previous result submissions, photos, reviews and activity history are kept. To pause access instead, uncheck Account enabled above and save.</p>'
+            content+=form('delete-user',deletion)
+        content+='</details>'
     return content+'</section>'
 
 def save_account(data):
@@ -367,6 +374,16 @@ def save_account(data):
         user=access.current_user.get()
         record_id=auth.manage_account(db,data,user['id'] if user else None)
         log_activity(db,'Updated' if data.get('id') else 'Created','account',record_id,'Account credentials, role or area settings saved.')
+
+def delete_account(data):
+    access.require_admin()
+    with connect() as db:
+        db.begin_write()
+        user=access.current_user.get()
+        deleted=auth.delete_account(db,data,user['id'] if user else None)
+        log_activity(db,'Deleted','account',deleted['id'],'Login removed: '+deleted['username']+' ('+deleted['role']+'). Submission and review history retained.')
+    auth.revoke_user(deleted['id'])
+
 
 def portal_header(title='Solution 2027',description='Polling units, agent assignments and field reports in one place.'):
     destination,label=('/', 'Back to dashboard') if title=='PU Results' else ('/results', 'Open PU Results')
@@ -500,7 +517,7 @@ class Handler(BaseHTTPRequestHandler):
     def handle_post(self):
         if self.path in ('/results','/results/review'):
             self.handle_result_post();return
-        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent','/user'): self.send_error(404); return
+        if self.path not in ('/login','/logout','/pu','/agent','/report','/import-preview','/import-confirm','/archive-agent','/restore-agent','/user','/delete-user'): self.send_error(404); return
         token,session=auth.get_session(self.headers.get('Cookie'))
         if not session or (self.path!='/login' and not session['authenticated']):
             self.redirect('/login'); return
@@ -520,6 +537,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.redirect('/',new_token); return
             if self.path=='/logout':
                 auth.revoke(token); self.redirect('/login',''); return
+            if self.path=='/delete-user':
+                delete_account(data)
+                self.redirect('/#accounts'); return
             if self.path=='/user':
                 save_account(data)
                 self.redirect('/#accounts'); return

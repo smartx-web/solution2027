@@ -144,3 +144,9 @@ Only administrators record verification decisions (**Pending verification**, **V
 Coordinators submit/correct results only in their assigned LGA/wards. Viewers remain read-only. In **Accounts**, an administrator can create a **PU Agent** login and select its one assigned polling unit. Agent logins can view that PU and submit/correct its results; they cannot edit directory/contact/report records, manage users, review results or access other PUs or their photos. Login assignment is separate from the agent contact directory. Changing role, PU assignment, password or enabled status invalidates existing sessions.
 
 Install dependencies and restart the app after updating. Existing SQLite accounts migrate automatically with IDs and credentials preserved; PostgreSQL applies `migrations/002_postgres.sql` on startup. Back up the database before updating. Production PostgreSQL migration needs verification in a separate test database before deployment.
+
+## Delete coordinator, viewer or PU agent logins
+
+An administrator can open **Accounts**, expand the login, check **Permanently delete the login**, and click **Delete account**. Deletion removes sign-in access and revokes that account’s sessions. The confirmation is separate from the account-edit form; it does not require a password reset. Changed/stale account forms must be refreshed before deletion. Administrator accounts cannot be deleted through this action.
+
+Previous result submissions, photos, corrections, reviews and activity records remain intact. Each successful deletion records the acting administrator and deleted username/role in the activity log. Deleting a PU agent login does not delete the separate agent contact/assignment record. To suspend a login instead, uncheck **Account enabled** in its edit form and save. No database schema change is required for this feature.

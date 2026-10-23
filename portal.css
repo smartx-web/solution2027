@@ -141,3 +141,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #44856c; outline-
   .login-body { padding: 24px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; } }
+
+.portal-body .account-delete { border-top: 1px solid #d4b7a7; padding-top: 18px; margin-top: 8px; background: #f0e5d9; padding: 18px; border-radius: 8px; }
+.portal-body .account-delete label, .portal-body .account-delete p { color: #6c382a; }
+.portal-body .account-delete button { background: #873e2d; border-color: #873e2d; }
+.portal-body .account-delete button:hover { background: #6d2e20; }

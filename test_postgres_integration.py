@@ -134,6 +134,29 @@ class LivePostgresTests(unittest.TestCase):
                 self.assertGreater(third,2)
             with self.assertRaisesRegex(ValueError,'contains records'):transfer.migrate(source,target,apply=True)
 
+    def test_account_deletion_retains_results_and_rejects_admins(self):
+        for role in ('coordinator','viewer','agent'):
+            with app.connect() as db:
+                uid=auth.manage_account(db,dict(username='delete-'+role,password='sample-test-password',role=role,lga='Apa',wards='',pu_id=str(self.units[0]['id']),active='yes'),self.user['id'])
+                row=dict(db.execute('SELECT * FROM users WHERE id=?',(uid,)).fetchone())
+                _,session=auth.new_session(True,auth.user_snapshot(row))
+            if role=='coordinator':
+                unit=next(p for p in self.units if p['lga']=='Apa')
+                context=access.current_user.set(auth.user_snapshot(row))
+                try:
+                    with app.connect() as db:rid=results.save(db,self.fixture(unit['id']),self.photo())
+                finally:access.current_user.reset(context)
+            app.delete_account(dict(id=str(uid),username=row['username'],version=str(row['version']),account_key=auth.account_key(row),confirmed='yes'))
+            with app.connect() as db:
+                self.assertIsNone(db.execute('SELECT id FROM users WHERE id=?',(uid,)).fetchone())
+                self.assertIsNone(auth.session_user(db,session))
+                self.assertIsNotNone(db.execute("SELECT id FROM activity_log WHERE entity='account' AND action='Deleted' AND record_id=?",(uid,)).fetchone())
+        with app.connect() as db:
+            self.assertEqual(results.get(db,rid)['account'],'delete-coordinator')
+            admin=dict(db.execute('SELECT * FROM users WHERE id=?',(self.user['id'],)).fetchone())
+        with self.assertRaisesRegex(ValueError,'Administrator'):
+            app.delete_account(dict(id=str(admin['id']),username=admin['username'],version=str(admin['version']),account_key=auth.account_key(admin),confirmed='yes'))
+
     def test_pg_dump_and_restore_include_result_photos_and_reviews(self):
         with app.connect() as db:first=results.save(db,self.fixture(self.units[0]['id']),self.photo())
         with app.connect() as db:results.review(db,dict(result_id=str(first),status='Verified by team',review_notes='Sample evidence checked.'))
